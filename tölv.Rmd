@@ -1,0 +1,76 @@
+---
+title: "tutor-web"
+author: "Ingunn Lilja Bergsdóttir"
+date: "5/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dbplyr)
+library(dplyr)
+library(RMySQL)
+library(tidyr)
+library(MASS)
+library(ggplot2)
+library(rvest)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(gridExtra)
+library(kableExtra)
+library(xtable)
+```
+
+```{r}
+twDb<-src_mysql("tw_quizdb", host = "127.0.0.1", port = 3306, user = "ilb8", password = "AIAtKDEMe2S0I")
+answer <- tbl(twDb, "answer")
+lecture<-tbl(twDb,"lecture")
+host<-tbl(twDb,"host")
+coinAward<-tbl(twDb,"coinAward")
+lectureGlobalSetting<-tbl(twDb,"lectureGlobalSetting")
+lectureQuestions<-tbl(twDb,"lectureQuestions")
+lectureSetting<-tbl(twDb,"lectureSetting")
+lectureStudentSetting<-tbl(twDb,"lectureStudentSetting")
+subscription<-as.data.frame(tbl(twDb,"subscription"))
+
+lectureStudentSetting%>%group_by(key)%>%summarise(stdev=sd(value,na.rm=T),stdevlog=sd(log2(value),na.rm=T))->stdevs
+hash <- read.csv("bighashfile.txt",sep=" ",col.names = c("dir","qName","hash","numQ","notaType"))
+pathQ<-unique(paste(hash$dir,hash$qName,sep=""))
+lectureQuestions%>%filter(plonePath%in%pathQ)->myQuestions
+answer%>%filter(timeStart>"2020-01-01 00:01:01")->answerRed
+```
+
+inner_join(answerRed,myQuestions) -> myAnswer
+student<-tbl(twDb,"student")
+
+
+```{r}
+cue <- read.table("cue_all.txt")
+```
+
+```{r}
+names(hash)
+```
+
+```{r}
+str(hash)
+```
+
+Er komið með töflu sem heitir hash (bighashfile) töflu sem heitir cue(cue_all) og svo grunn breyturnar sem komnar eru úr sjálfum gagnagrunninum.
+
+Tengja saman spurningar?
+
+```{r}
+str(cue)
+```
+
+```{r}
+glimpse(cue)
+```
+
+
+
