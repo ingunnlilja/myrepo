@@ -27,8 +27,12 @@ library(xtable)
 
 ```{r}
 twDb<-src_mysql("tw_quizdb", host = "127.0.0.1", port = 3306, user = "ilb8", password = "AIAtKDEMe2S0I")
+```
+
+```{r}
 answer <- tbl(twDb, "answer")
 lecture<-tbl(twDb,"lecture")
+question<-tbl(twDb,"question")
 host<-tbl(twDb,"host")
 coinAward<-tbl(twDb,"coinAward")
 lectureGlobalSetting<-tbl(twDb,"lectureGlobalSetting")
@@ -38,39 +42,73 @@ lectureStudentSetting<-tbl(twDb,"lectureStudentSetting")
 subscription<-as.data.frame(tbl(twDb,"subscription"))
 
 lectureStudentSetting%>%group_by(key)%>%summarise(stdev=sd(value,na.rm=T),stdevlog=sd(log2(value),na.rm=T))->stdevs
-hash <- read.csv("bighashfile.txt",sep=" ",col.names = c("dir","qName","hash","numQ","notaType"))
+hash<-read.csv("bighashfile.wide.txt",sep=" ",col.names = c("dir","qName","hash","hash2","hash3","numQ","notaType"),na.strings = ".")
 pathQ<-unique(paste(hash$dir,hash$qName,sep=""))
-lectureQuestions%>%filter(plonePath%in%pathQ)->myQuestions
+plonePath<-unique(paste(hash$dir,hash$qName,sep=""))
+plonePath<-as.data.frame(plonePath)
+hash$plonePath<-paste(hash$dir,hash$qName,sep="")
+left_join(plonePath,as.data.frame(question))->myQuestions
 answer%>%filter(timeStart>"2020-01-01 00:01:01")->answerRed
+answerRed<-as.data.frame(answerRed)
+inner_join(answerRed,myQuestions) -> myAnswer
+myAnswer<-as.data.frame(myAnswer)
+inner_join(myAnswer,hash) -> fullAnswerData
 ```
 
-inner_join(answerRed,myQuestions) -> myAnswer
-student<-tbl(twDb,"student")
-
+## WOOOOHOOOOO keyrir 
 
 ```{r}
 cue <- read.table("cue_all.txt")
 ```
 
 ```{r}
-names(hash)
+glimpse(hash)
+```
+
+
+```{r}
+##glimpse(cue)
+glimpse(fullAnswerData)
 ```
 
 ```{r}
-str(hash)
+glimpse(myQuestions)
 ```
+
+
+
+##question%>%dplyr::select(plonePath,questionId)->miniA
+## miniA<-as.data.frame(miniA)
+ 
+##ID_Nj <- miniA[grep(paste(Qgen_Nj,collapse = "|"),miniA$plonePath),]
+##ID_Nj
+
+#question-ID hjá NOTA+ spurningum
+##qID_Nj <- ID_Nj%>%pull(questionId)
+##qID_Nj
+
+#spurningarnar á NOTA+
+##spr_Nj <- myQuestions%>%filter(questionId %in% qID_Nj)
+##spr_Nj
+
+##allt klabbið á NOTA+
+##svör_Nj <- myAnswer%>%filter(questionId %in% qID_Nj)
+##svör_Nj
+
+##Qgen <- hashes%>%pull(qName)
+
+
+Langar að tengja samana cue við eitthvað annað.
 
 Er komið með töflu sem heitir hash (bighashfile) töflu sem heitir cue(cue_all) og svo grunn breyturnar sem komnar eru úr sjálfum gagnagrunninum.
 
 Tengja saman spurningar?
 
-```{r}
-str(cue)
-```
+Cue bendir á spurningar sem höfðu vísbendingar.
 
-```{r}
-glimpse(cue)
-```
+Búa til nýja hash skrá.
 
+Qgen gæti tengst
 
+Inní my answers er samband 
 
