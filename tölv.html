@@ -399,11 +399,11 @@ library(rvest)</code></pre>
 <pre class="r"><code>library(dplyr)
 library(knitr)
 library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages ------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## -- Attaching packages ----------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
 <pre><code>## v tibble  2.1.3     v purrr   0.3.2
 ## v readr   1.3.1     v stringr 1.4.0
 ## v tibble  2.1.3     v forcats 0.4.0</code></pre>
-<pre><code>## -- Conflicts ---------------------------- tidyverse_conflicts() --
+<pre><code>## -- Conflicts -------------------------------------------------------------------- tidyverse_conflicts() --
 ## x dplyr::filter()         masks stats::filter()
 ## x readr::guess_encoding() masks rvest::guess_encoding()
 ## x dplyr::ident()          masks dbplyr::ident()
@@ -457,67 +457,64 @@ answerRed&lt;-as.data.frame(answerRed)</code></pre>
 <pre class="r"><code>myAnswer&lt;-as.data.frame(myAnswer)
 inner_join(myAnswer,hash) -&gt; fullAnswerData</code></pre>
 <pre><code>## Joining, by = &quot;plonePath&quot;</code></pre>
+<pre class="r"><code>fullAnswerData &lt;- as.data.frame(fullAnswerData)</code></pre>
+<pre class="r"><code>##question %&gt;%
+  ##collect() %&gt;%
+  ##filter(grepl(&quot;cue&quot;, plonePath)) %&gt;%
+  ##select(plonePath) -&gt; tmp</code></pre>
 <div id="woooohooooo-keyrir" class="section level2">
 <h2>WOOOOHOOOOO keyrir</h2>
-<pre class="r"><code>cue &lt;- read.table(&quot;cue_all.txt&quot;)</code></pre>
-<pre class="r"><code>glimpse(hash)</code></pre>
-<pre><code>## Observations: 5,491
-## Variables: 8
-## $ dir       &lt;fct&gt; /tutor-web/stats/lotmidmisseri2020/lecture010/, /tut...
-## $ qName     &lt;fct&gt; Qgen-q101002, Qgen-q101003, Qgen-q101004, Qgen-q1010...
-## $ hash      &lt;fct&gt; NOTA+, 6ca005fb0347609c3c591c54d3979c1fb56cfdb24db84...
-## $ hash2     &lt;fct&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, ...
-## $ hash3     &lt;fct&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, ...
-## $ numQ      &lt;int&gt; 4, 4, 4, 4, 3, 4, 8, 7, 7, 4, 4, 3, 6, 7, 2, 6, 4, 4...
-## $ notaType  &lt;fct&gt; NOTA+, AOTA-, NOTA-, NOTA-, noNOTA, NOTA+, noNOTA, n...
-## $ plonePath &lt;chr&gt; &quot;/tutor-web/stats/lotmidmisseri2020/lecture010/Qgen-...</code></pre>
-<pre class="r"><code>##glimpse(cue)
-glimpse(fullAnswerData)</code></pre>
-<pre><code>## Observations: 107,823
-## Variables: 29
-## $ answerId         &lt;int&gt; 3105695, 3105696, 3141220, 3141221, 3141222, ...
-## $ lectureId        &lt;int&gt; 3082, 3082, 3082, 3082, 3082, 3082, 3082, 308...
-## $ studentId        &lt;int&gt; 1, 1, 18788, 18788, 18788, 18788, 18788, 1878...
-## $ questionId       &lt;int&gt; 45591, 44899, 44920, 45021, 45480, 45463, 451...
-## $ chosenAnswer     &lt;int&gt; 2, 0, 0, 1, 0, 0, 3, 3, 0, 0, 4, 0, 3, 0, 2, ...
-## $ grade            &lt;dbl&gt; 0.75, 3.75, 1.75, 0.00, 2.00, 2.75, 0.75, 0.2...
-## $ correct          &lt;int&gt; 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, ...
-## $ timeStart        &lt;chr&gt; &quot;2020-01-15 10:24:32&quot;, &quot;2020-01-15 10:26:20&quot;,...
-## $ timeEnd          &lt;chr&gt; &quot;2020-01-15 10:26:00&quot;, &quot;2020-01-15 10:26:35&quot;,...
-## $ practice         &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...
-## $ coinsAwarded     &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...
-## $ ugQuestionGuid   &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N...
-## $ lectureVersion   &lt;int&gt; 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, ...
-## $ plonePath        &lt;chr&gt; &quot;/tutor-web/stats/stat201.99/lecture10/Qgen-q...
-## $ timesAnswered    &lt;int&gt; 110, 23, 27, 18, 111, 28, 13, 29, 27, 30, 22,...
-## $ timesCorrect     &lt;int&gt; 97, 17, 20, 7, 97, 22, 6, 18, 19, 23, 14, 14,...
-## $ lastUpdate       &lt;chr&gt; &quot;2019-04-06 13:04:54&quot;, &quot;2020-03-30 16:00:38&quot;,...
-## $ active           &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
-## $ qnType           &lt;chr&gt; &quot;tw_latexquestion&quot;, &quot;tw_latexquestion&quot;, &quot;tw_l...
-## $ correctChoices   &lt;chr&gt; &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0...
-## $ incorrectChoices &lt;chr&gt; &quot;[1, 2, 3]&quot;, &quot;[1, 2, 3]&quot;, &quot;[1, 2, 3]&quot;, &quot;[1, 2...
-## $ title            &lt;chr&gt; &quot;Qgen-q3189 Understanding SLR&quot;, &quot;Qgen-q2098 U...
-## $ dir              &lt;fct&gt; /tutor-web/stats/stat201.99/lecture10/, /tuto...
-## $ qName            &lt;fct&gt; Qgen-q3189, Qgen-q2098, Qgen-q2119, Qgen-q222...
-## $ hash             &lt;fct&gt; d3a978206c877eee8627a29c7a94238d8339d66fc4be4...
-## $ hash2            &lt;fct&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 0...
-## $ hash3            &lt;fct&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 4...
-## $ numQ             &lt;int&gt; 4, 4, 4, 8, 4, 4, 5, 6, 7, 7, 6, 4, 4, 8, 4, ...
-## $ notaType         &lt;fct&gt; AOTA-, AOTA-, AOTA-, noNOTA, NOTA-, AOTA-, no...</code></pre>
-<pre class="r"><code>glimpse(myQuestions)</code></pre>
-<pre><code>## Observations: 5,379
-## Variables: 10
-## $ plonePath        &lt;chr&gt; &quot;/tutor-web/stats/lotmidmisseri2020/lecture01...
-## $ questionId       &lt;int&gt; 57489, 57490, 57491, 57492, 57493, 57494, 574...
-## $ timesAnswered    &lt;int&gt; 18, 36, 29, 14, 28, 22, 27, 41, 26, 38, 23, 3...
-## $ timesCorrect     &lt;int&gt; 16, 31, 25, 14, 24, 20, 23, 38, 21, 29, 20, 2...
-## $ lastUpdate       &lt;chr&gt; &quot;2020-04-05 11:32:27&quot;, &quot;2020-04-05 11:32:27&quot;,...
-## $ active           &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
-## $ qnType           &lt;chr&gt; &quot;tw_latexquestion&quot;, &quot;tw_latexquestion&quot;, &quot;tw_l...
-## $ correctChoices   &lt;chr&gt; &quot;[3]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[0]&quot;, &quot;[3]&quot;, &quot;[0...
-## $ incorrectChoices &lt;chr&gt; &quot;[0, 1, 2]&quot;, &quot;[1, 2, 3]&quot;, &quot;[1, 2, 3]&quot;, &quot;[1, 2...
-## $ title            &lt;chr&gt; &quot;Qgen-q101002 Síðmisserispróf 2020 dæmi 1&quot;, &quot;...</code></pre>
-<p>##question%&gt;%dplyr::select(plonePath,questionId)-&gt;miniA ## miniA&lt;-as.data.frame(miniA)</p>
+<pre class="r"><code>cue1 &lt;- read.table(&quot;cue_all.txt&quot;)
+cue2 &lt;- read.table(&quot;cuelist.txt&quot;)
+names(cue1)</code></pre>
+<pre><code>## [1] &quot;V1&quot;</code></pre>
+<pre class="r"><code>names(cue2)</code></pre>
+<pre><code>## [1] &quot;V1&quot; &quot;V2&quot;</code></pre>
+<pre class="r"><code>nrow(cue1)</code></pre>
+<pre><code>## [1] 231</code></pre>
+<pre class="r"><code>nrow(cue2)</code></pre>
+<pre><code>## [1] 175</code></pre>
+<pre class="r"><code>str(cue1)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    231 obs. of  1 variable:
+##  $ V1: Factor w/ 231 levels &quot;/tutor-web/math/copy_of_math070.0/410100/Cg25Qgen-q7050.cue&quot;,..: 50 53 52 54 51 55 88 100 56 95 ...</code></pre>
+<p>Virðast ekki vera endurtekningar í cue1</p>
+<pre class="r"><code>summary(cue2)</code></pre>
+<pre><code>##                                         V1                     V2     
+##  ./math070/Q-0700t0/lec050600/cue.tex:%ID:  2   question-008.cue:  7  
+##  ./math070/Q-0700t0/lec130200/cue.tex:%ID:  2   2dpoly-10.cue   :  5  
+##  ./math070/Q-0700t0/lec210100/cue.tex:%ID:  2   Ag10q02.cue     :  5  
+##  ./math099/Q-0990t0/lec050600/cue.tex:%ID:  2   Ag25q39.cue     :  5  
+##  ./math099/Q-0990t0/lec130200/cue.tex:%ID:  2   Ag40q10.cue     :  5  
+##  ./math099/Q-0990t0/lec210100/cue.tex:%ID:  2   Ag40q24.cue     :  5  
+##  (Other)                                 :163   (Other)         :143</code></pre>
+<p>cue2 er með tveim vigrum þar sem ég er ekki viss hvor er hvað og það er greinilega haugur af endurtekningum. Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????</p>
+<pre class="r"><code>anyDuplicated(cue1)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>anyDuplicated(cue2$V1)</code></pre>
+<pre><code>## [1] 4</code></pre>
+<pre class="r"><code>anyDuplicated(cue2$V2)</code></pre>
+<pre><code>## [1] 30</code></pre>
+<pre class="r"><code>fullAnswerData$plonePath &lt;- as.factor(fullAnswerData$plonePath)
+str(fullAnswerData$plonePath)</code></pre>
+<pre><code>##  Factor w/ 4479 levels &quot;/tutor-web/stats/lotlokaprof2020/lecture010/Qgen-q111001&quot;,..: 4368 3977 3998 4099 4257 4240 4179 4052 3888 4421 ...</code></pre>
+<pre class="r"><code>anyDuplicated(fullAnswerData$plonePath)</code></pre>
+<pre><code>## [1] 16</code></pre>
+<p>cue_all lítur miklu betur út.</p>
+<p>Byrja með að vinna í cue_all, get ekki sameinað eins og er.</p>
+<p>Allt sem er í cue_all þarf að tengjast við eitthvað í fullanswerData</p>
+<pre class="r"><code>names(fullAnswerData)</code></pre>
+<pre><code>##  [1] &quot;answerId&quot;         &quot;lectureId&quot;        &quot;studentId&quot;       
+##  [4] &quot;questionId&quot;       &quot;chosenAnswer&quot;     &quot;grade&quot;           
+##  [7] &quot;correct&quot;          &quot;timeStart&quot;        &quot;timeEnd&quot;         
+## [10] &quot;practice&quot;         &quot;coinsAwarded&quot;     &quot;ugQuestionGuid&quot;  
+## [13] &quot;lectureVersion&quot;   &quot;plonePath&quot;        &quot;timesAnswered&quot;   
+## [16] &quot;timesCorrect&quot;     &quot;lastUpdate&quot;       &quot;active&quot;          
+## [19] &quot;qnType&quot;           &quot;correctChoices&quot;   &quot;incorrectChoices&quot;
+## [22] &quot;title&quot;            &quot;dir&quot;              &quot;qName&quot;           
+## [25] &quot;hash&quot;             &quot;hash2&quot;            &quot;hash3&quot;           
+## [28] &quot;numQ&quot;             &quot;notaType&quot;</code></pre>
+<pre class="r"><code>fullAnswerData%&gt;%dplyr::select(plonePath,questionId)-&gt;miniA
+miniA&lt;-as.data.frame(miniA)</code></pre>
 <p>##ID_Nj &lt;- miniA[grep(paste(Qgen_Nj,collapse = “|”),miniA$plonePath),] ##ID_Nj</p>
 <p>#question-ID hjá NOTA+ spurningum ##qID_Nj &lt;- ID_Nj%&gt;%pull(questionId) ##qID_Nj</p>
 <p>#spurningarnar á NOTA+ ##spr_Nj &lt;- myQuestions%&gt;%filter(questionId %in% qID_Nj) ##spr_Nj</p>
@@ -530,6 +527,9 @@ glimpse(fullAnswerData)</code></pre>
 <p>Búa til nýja hash skrá.</p>
 <p>Qgen gæti tengst</p>
 <p>Inní my answers er samband</p>
+<p>inner join á cue eða að minnsta kosti leita að duplicates.</p>
+<p>cue-in liggja í plonepath.</p>
+<pre class="r"><code>##fullAnswerData$plonePath</code></pre>
 </div>
 
 

@@ -53,32 +53,68 @@ answerRed<-as.data.frame(answerRed)
 inner_join(answerRed,myQuestions) -> myAnswer
 myAnswer<-as.data.frame(myAnswer)
 inner_join(myAnswer,hash) -> fullAnswerData
+fullAnswerData <- as.data.frame(fullAnswerData)
 ```
+
+```{r}
+##question %>%
+  ##collect() %>%
+  ##filter(grepl("cue", plonePath)) %>%
+  ##select(plonePath) -> tmp
+```
+
 
 ## WOOOOHOOOOO keyrir 
 
 ```{r}
-cue <- read.table("cue_all.txt")
+cue1 <- read.table("cue_all.txt")
+cue2 <- read.table("cuelist.txt")
+names(cue1)
+names(cue2)
 ```
 
 ```{r}
-glimpse(hash)
-```
-
-
-```{r}
-##glimpse(cue)
-glimpse(fullAnswerData)
+nrow(cue1)
 ```
 
 ```{r}
-glimpse(myQuestions)
+nrow(cue2)
 ```
 
+```{r}
+str(cue1)
+```
+Virðast ekki vera endurtekningar í cue1
 
+```{r}
+summary(cue2)
+```
+cue2 er með tveim vigrum þar sem ég er ekki viss hvor er hvað og það er greinilega haugur af endurtekningum. Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????
 
-##question%>%dplyr::select(plonePath,questionId)->miniA
-## miniA<-as.data.frame(miniA)
+```{r}
+anyDuplicated(cue1)
+anyDuplicated(cue2$V1)
+anyDuplicated(cue2$V2)
+fullAnswerData$plonePath <- as.factor(fullAnswerData$plonePath)
+str(fullAnswerData$plonePath)
+anyDuplicated(fullAnswerData$plonePath)
+```
+
+cue_all lítur miklu betur út.
+
+Byrja með að vinna í cue_all, get ekki sameinað eins og er. 
+
+Allt sem er í cue_all þarf að tengjast við eitthvað í fullanswerData
+
+```{r}
+names(fullAnswerData)
+```
+
+```{r}
+fullAnswerData%>%dplyr::select(plonePath,questionId)->miniA
+miniA<-as.data.frame(miniA)
+```
+
  
 ##ID_Nj <- miniA[grep(paste(Qgen_Nj,collapse = "|"),miniA$plonePath),]
 ##ID_Nj
@@ -111,4 +147,12 @@ Búa til nýja hash skrá.
 Qgen gæti tengst
 
 Inní my answers er samband 
+
+inner join á cue eða að minnsta kosti leita að duplicates.
+
+cue-in liggja í plonepath.
+
+```{r}
+##fullAnswerData$plonePath
+```
 
