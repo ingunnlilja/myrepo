@@ -59,18 +59,18 @@ fullAnswerData <- as.data.frame(fullAnswerData)
 
 ```{r}
 #Kóðinn á bakvið cue1. Villa á select.
-fullAnswerData %>%
-  collect() %>%
-  filter(grepl("cue", plonePath)) %>%
-  select(plonePath) -> tmp
+#fullAnswerData %>%
+#collect() %>%
+#filter(grepl("cue", plonePath)) %>%
+#select(plonePath) -> tmp
 ```
 
 ## WOOOOHOOOOO keyrir 
 
 ```{r}
 ## töflurnar með vísbendingunum, benda í plonepath
-cue1 <- read.table("cue_all.txt")
-cue2 <- read.table("cuelist.txt")
+cue1 <- read.table("data/cue_all.txt")
+cue2 <- read.table("data/cuelist.txt")
 glimpse(cue1)
 glimpse(cue2)
 ```

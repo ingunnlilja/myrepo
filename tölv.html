@@ -393,17 +393,23 @@ library(MASS)</code></pre>
 <pre><code>## The following object is masked from &#39;package:dplyr&#39;:
 ## 
 ##     select</code></pre>
+<pre class="r"><code>library(compare)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;compare&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:base&#39;:
+## 
+##     isTRUE</code></pre>
 <pre class="r"><code>library(ggplot2)
 library(rvest)</code></pre>
 <pre><code>## Loading required package: xml2</code></pre>
 <pre class="r"><code>library(dplyr)
 library(knitr)
 library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## -- Attaching packages ------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
 <pre><code>## v tibble  2.1.3     v purrr   0.3.2
 ## v readr   1.3.1     v stringr 1.4.0
 ## v tibble  2.1.3     v forcats 0.4.0</code></pre>
-<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+<pre><code>## -- Conflicts ---------------------------------------------------------- tidyverse_conflicts() --
 ## x dplyr::filter()         masks stats::filter()
 ## x readr::guess_encoding() masks rvest::guess_encoding()
 ## x dplyr::ident()          masks dbplyr::ident()
@@ -439,7 +445,7 @@ lectureStudentSetting&lt;-tbl(twDb,&quot;lectureStudentSetting&quot;)
 subscription&lt;-as.data.frame(tbl(twDb,&quot;subscription&quot;))
 
 lectureStudentSetting%&gt;%group_by(key)%&gt;%summarise(stdev=sd(value,na.rm=T),stdevlog=sd(log2(value),na.rm=T))-&gt;stdevs
-hash&lt;-read.csv(&quot;bighashfile.wide.txt&quot;,sep=&quot; &quot;,col.names = c(&quot;dir&quot;,&quot;qName&quot;,&quot;hash&quot;,&quot;hash2&quot;,&quot;hash3&quot;,&quot;numQ&quot;,&quot;notaType&quot;),na.strings = &quot;.&quot;)
+hash&lt;-read.csv(&quot;data/bighashfile.wide.txt&quot;,sep=&quot; &quot;,col.names = c(&quot;dir&quot;,&quot;qName&quot;,&quot;hash&quot;,&quot;hash2&quot;,&quot;hash3&quot;,&quot;numQ&quot;,&quot;notaType&quot;),na.strings = &quot;.&quot;)
 pathQ&lt;-unique(paste(hash$dir,hash$qName,sep=&quot;&quot;))
 plonePath&lt;-unique(paste(hash$dir,hash$qName,sep=&quot;&quot;))
 plonePath&lt;-as.data.frame(plonePath)
@@ -458,27 +464,28 @@ answerRed&lt;-as.data.frame(answerRed)</code></pre>
 inner_join(myAnswer,hash) -&gt; fullAnswerData</code></pre>
 <pre><code>## Joining, by = &quot;plonePath&quot;</code></pre>
 <pre class="r"><code>fullAnswerData &lt;- as.data.frame(fullAnswerData)</code></pre>
-<pre class="r"><code>##kóðinn sem var notaður til að búa til cue1
-
-##question %&gt;%
-  ##collect() %&gt;%
-  ##filter(grepl(&quot;cue&quot;, plonePath)) %&gt;%
-  ##select(plonePath) -&gt; tmp</code></pre>
+<pre class="r"><code>#Kóðinn á bakvið cue1. Villa á select.
+#fullAnswerData %&gt;%
+#collect() %&gt;%
+#filter(grepl(&quot;cue&quot;, plonePath)) %&gt;%
+#select(plonePath) -&gt; tmp</code></pre>
 <div id="woooohooooo-keyrir" class="section level2">
 <h2>WOOOOHOOOOO keyrir</h2>
-<pre class="r"><code>cue1 &lt;- read.table(&quot;cue_all.txt&quot;)
-cue2 &lt;- read.table(&quot;cuelist.txt&quot;)
-names(cue1)</code></pre>
-<pre><code>## [1] &quot;V1&quot;</code></pre>
-<pre class="r"><code>names(cue2)</code></pre>
-<pre><code>## [1] &quot;V1&quot; &quot;V2&quot;</code></pre>
-<pre class="r"><code>nrow(cue1)</code></pre>
-<pre><code>## [1] 231</code></pre>
-<pre class="r"><code>nrow(cue2)</code></pre>
-<pre><code>## [1] 175</code></pre>
-<pre class="r"><code>str(cue1)</code></pre>
-<pre><code>## &#39;data.frame&#39;:    231 obs. of  1 variable:
-##  $ V1: Factor w/ 231 levels &quot;/tutor-web/math/copy_of_math070.0/410100/Cg25Qgen-q7050.cue&quot;,..: 50 53 52 54 51 55 88 100 56 95 ...</code></pre>
+<pre class="r"><code>## töflurnar með vísbendingunum, benda í plonepath
+cue1 &lt;- read.table(&quot;data/cue_all.txt&quot;)
+cue2 &lt;- read.table(&quot;data/cuelist.txt&quot;)
+glimpse(cue1)</code></pre>
+<pre><code>## Observations: 231
+## Variables: 1
+## $ V1 &lt;fct&gt; /tutor-web/math/math070.0/050500/qInt4004.cue, /tutor-web/m...</code></pre>
+<pre class="r"><code>glimpse(cue2)</code></pre>
+<pre><code>## Observations: 175
+## Variables: 2
+## $ V1 &lt;fct&gt; ./math070/Q-0700t0/lec430400/cue.tex:%ID, ./math070/Q-0700t...
+## $ V2 &lt;fct&gt; question-s301.cue, Ag60q09.cue, Ag40q10.cue, Ag40q24.cue, Q...</code></pre>
+<p>cue</p>
+<pre class="r"><code>anyDuplicated(cue1)</code></pre>
+<pre><code>## [1] 0</code></pre>
 <p>Virðast ekki vera endurtekningar í cue1</p>
 <pre class="r"><code>summary(cue2)</code></pre>
 <pre><code>##                                         V1                     V2     
@@ -489,17 +496,18 @@ names(cue1)</code></pre>
 ##  ./math099/Q-0990t0/lec130200/cue.tex:%ID:  2   Ag40q10.cue     :  5  
 ##  ./math099/Q-0990t0/lec210100/cue.tex:%ID:  2   Ag40q24.cue     :  5  
 ##  (Other)                                 :163   (Other)         :143</code></pre>
-<p>cue2 er með tveim vigrum þar sem ég er ekki viss hvor er hvað og það er greinilega haugur af endurtekningum. Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????</p>
-<pre class="r"><code>anyDuplicated(cue1)</code></pre>
-<pre><code>## [1] 0</code></pre>
 <pre class="r"><code>anyDuplicated(cue2$V1)</code></pre>
 <pre><code>## [1] 4</code></pre>
 <pre class="r"><code>anyDuplicated(cue2$V2)</code></pre>
 <pre><code>## [1] 30</code></pre>
-<pre class="r"><code>fullAnswerData$plonePath &lt;- as.character(fullAnswerData$plonePath)</code></pre>
+<p>Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????</p>
+<p>cue 2 er með tveim dálkum þar sem seinni dálkurinn er það seinasta línan í plonepath hjá hinum.</p>
 <p>cue_all lítur miklu betur út.</p>
 <p>Byrja með að vinna í cue_all, get ekki sameinað eins og er.</p>
 <p>Allt sem er í cue_all þarf að tengjast við eitthvað í fullanswerData</p>
+<p>Skýri V1 í cue1 plonepath, í cue2 skýri ég V1 plonepath og V2 ID</p>
+<pre class="r"><code>names(cue1) &lt;- c(&quot;plonepath&quot;)
+names(cue2) &lt;- c(&quot;plonepath&quot;, &quot;ID&quot;)</code></pre>
 <pre class="r"><code>names(fullAnswerData)</code></pre>
 <pre><code>##  [1] &quot;answerId&quot;         &quot;lectureId&quot;        &quot;studentId&quot;       
 ##  [4] &quot;questionId&quot;       &quot;chosenAnswer&quot;     &quot;grade&quot;           
@@ -512,30 +520,37 @@ names(cue1)</code></pre>
 ## [25] &quot;hash&quot;             &quot;hash2&quot;            &quot;hash3&quot;           
 ## [28] &quot;numQ&quot;             &quot;notaType&quot;</code></pre>
 <p>Minnka þetta niður til að skoða fyrir minna</p>
-<pre class="r"><code>fullAnswerData%&gt;%dplyr::select(plonePath,questionId)-&gt;miniA
-#miniA&lt;-as.data.frame(miniA)</code></pre>
-<pre class="r"><code>names(cue1) &lt;- c(&quot;plonepath&quot;)
-cue1$cue &lt;- &quot;1&quot;</code></pre>
-<pre class="r"><code>ID &lt;- miniA[grep(cue1,miniA$plonePath),]</code></pre>
-<pre><code>## Warning in grep(cue1, miniA$plonePath): argument &#39;pattern&#39; has length &gt; 1
-## and only the first element will be used</code></pre>
-<pre class="r"><code>##kminiB &lt;- left_join(miniA, cue1)</code></pre>
-<p>ID_Nj &lt;- miniA[grep(paste(Qgen_Nj,collapse = “|”),miniA$plonePath),] ID_Nj</p>
-<p>##ID_Nj &lt;- miniA[grep(paste(Qgen_Nj,collapse = “|”),miniA$plonePath),] ##ID_Nj</p>
-<p>#question-ID hjá NOTA+ spurningum ##qID_Nj &lt;- ID_Nj%&gt;%pull(questionId) ##qID_Nj</p>
-<p>#spurningarnar á NOTA+ ##spr_Nj &lt;- myQuestions%&gt;%filter(questionId %in% qID_Nj) ##spr_Nj</p>
-<p>##allt klabbið á NOTA+ ##svör_Nj &lt;- myAnswer%&gt;%filter(questionId %in% qID_Nj) ##svör_Nj</p>
-<p>##Qgen &lt;- hashes%&gt;%pull(qName)</p>
-<p>Langar að tengja samana cue við eitthvað annað.</p>
-<p>Er komið með töflu sem heitir hash (bighashfile) töflu sem heitir cue(cue_all) og svo grunn breyturnar sem komnar eru úr sjálfum gagnagrunninum.</p>
-<p>Tengja saman spurningar?</p>
-<p>Cue bendir á spurningar sem höfðu vísbendingar.</p>
-<p>Búa til nýja hash skrá.</p>
-<p>Qgen gæti tengst</p>
-<p>Inní my answers er samband</p>
-<p>inner join á cue eða að minnsta kosti leita að duplicates.</p>
-<p>cue-in liggja í plonepath.</p>
-<pre class="r"><code>##fullAnswerData$plonePath</code></pre>
+<pre class="r"><code>fullAnswerData%&gt;%dplyr::select(plonePath, qName)-&gt;miniA
+miniA &lt;- as.data.frame(miniA)
+summary(miniA)</code></pre>
+<pre><code>##   plonePath                qName       
+##  Length:108017      Qgen-q2083:   232  
+##  Class :character   Qgen-q3153:   184  
+##  Mode  :character   Qgen-q1006:   176  
+##                     Qgen-q3209:   170  
+##                     Qgen-q3116:   156  
+##                     Qgen-q3030:   149  
+##                     (Other)   :106950</code></pre>
+<pre class="r"><code>cue1$cue &lt;- &quot;1&quot;
+cue2$cue &lt;- &quot;1&quot;</code></pre>
+<pre class="r"><code>## Taka til í báðum cue listum.
+cue1$plonepath &lt;- gsub(cue1$plonepath, pattern=&quot;.cue$&quot;, replacement=&quot;&quot;)
+cue2$ID &lt;- gsub(cue2$ID, pattern=&quot;.cue$&quot;, replacement=&quot;&quot;)
+cue2$plonepath &lt;- gsub(cue2$plonepath, pattern=&quot;cue.tex:%ID$&quot;, replacement=&quot;&quot;)</code></pre>
+<pre class="r"><code>## Taka út tvær línur sem eru greinilega bull
+cue2 &lt;- filter(cue2, !ID == &quot;matches&quot;)
+cue2 &lt;- filter(cue2, !plonepath == &quot;Binary&quot;)</code></pre>
+<pre class="r"><code>plone &lt;- cue2%&gt;%pull(ID)</code></pre>
+<pre class="r"><code>tenging &lt;- miniA[grep(paste(plone,collapse = &quot;|&quot;),miniA$qName),]</code></pre>
+<pre class="r"><code>teng &lt;- miniA[unique(grep(paste(plone, collapse=&quot;|&quot;), miniA$qName)),]</code></pre>
+<pre class="r"><code>data &lt;- filter(miniA, grepl(paste(plone,collapse = &quot;|&quot;),miniA$qName))</code></pre>
+<pre class="r"><code>tbl(twDb,&quot;question&quot;)%&gt;%collect()%&gt;%filter(grepl(&quot;cue&quot;, plonePath)) -&gt; cue</code></pre>
+<p>Fann questionId með þessu!!!!!!!!!!!!!!</p>
+<p>Þá er að tengja questionId við fullanswerdata.</p>
+<pre class="r"><code>left_join(cue,fullAnswerData)-&gt;virkar</code></pre>
+<pre><code>## Joining, by = c(&quot;questionId&quot;, &quot;plonePath&quot;, &quot;timesAnswered&quot;, &quot;timesCorrect&quot;, &quot;lastUpdate&quot;, &quot;active&quot;, &quot;qnType&quot;, &quot;correctChoices&quot;, &quot;incorrectChoices&quot;, &quot;title&quot;)</code></pre>
+<pre class="r"><code>inner_join(cue, fullAnswerData, by=&quot;questionId&quot;) -&gt; kannski</code></pre>
+<pre class="r"><code>ID &lt;- cue%&gt;%pull(questionId)</code></pre>
 </div>
 
 
