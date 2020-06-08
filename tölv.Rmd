@@ -43,7 +43,7 @@ lectureStudentSetting<-tbl(twDb,"lectureStudentSetting")
 subscription<-as.data.frame(tbl(twDb,"subscription"))
 
 lectureStudentSetting%>%group_by(key)%>%summarise(stdev=sd(value,na.rm=T),stdevlog=sd(log2(value),na.rm=T))->stdevs
-hash<-read.csv("bighashfile.wide.txt",sep=" ",col.names = c("dir","qName","hash","hash2","hash3","numQ","notaType"),na.strings = ".")
+hash<-read.csv("data/bighashfile.wide.txt",sep=" ",col.names = c("dir","qName","hash","hash2","hash3","numQ","notaType"),na.strings = ".")
 pathQ<-unique(paste(hash$dir,hash$qName,sep=""))
 plonePath<-unique(paste(hash$dir,hash$qName,sep=""))
 plonePath<-as.data.frame(plonePath)
