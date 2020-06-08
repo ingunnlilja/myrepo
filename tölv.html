@@ -399,11 +399,11 @@ library(rvest)</code></pre>
 <pre class="r"><code>library(dplyr)
 library(knitr)
 library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages ----------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.2.1 --</code></pre>
 <pre><code>## v tibble  2.1.3     v purrr   0.3.2
 ## v readr   1.3.1     v stringr 1.4.0
 ## v tibble  2.1.3     v forcats 0.4.0</code></pre>
-<pre><code>## -- Conflicts -------------------------------------------------------------------- tidyverse_conflicts() --
+<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 ## x dplyr::filter()         masks stats::filter()
 ## x readr::guess_encoding() masks rvest::guess_encoding()
 ## x dplyr::ident()          masks dbplyr::ident()
@@ -458,7 +458,9 @@ answerRed&lt;-as.data.frame(answerRed)</code></pre>
 inner_join(myAnswer,hash) -&gt; fullAnswerData</code></pre>
 <pre><code>## Joining, by = &quot;plonePath&quot;</code></pre>
 <pre class="r"><code>fullAnswerData &lt;- as.data.frame(fullAnswerData)</code></pre>
-<pre class="r"><code>##question %&gt;%
+<pre class="r"><code>##kóðinn sem var notaður til að búa til cue1
+
+##question %&gt;%
   ##collect() %&gt;%
   ##filter(grepl(&quot;cue&quot;, plonePath)) %&gt;%
   ##select(plonePath) -&gt; tmp</code></pre>
@@ -494,11 +496,7 @@ names(cue1)</code></pre>
 <pre><code>## [1] 4</code></pre>
 <pre class="r"><code>anyDuplicated(cue2$V2)</code></pre>
 <pre><code>## [1] 30</code></pre>
-<pre class="r"><code>fullAnswerData$plonePath &lt;- as.factor(fullAnswerData$plonePath)
-str(fullAnswerData$plonePath)</code></pre>
-<pre><code>##  Factor w/ 4479 levels &quot;/tutor-web/stats/lotlokaprof2020/lecture010/Qgen-q111001&quot;,..: 4368 3977 3998 4099 4257 4240 4179 4052 3888 4421 ...</code></pre>
-<pre class="r"><code>anyDuplicated(fullAnswerData$plonePath)</code></pre>
-<pre><code>## [1] 16</code></pre>
+<pre class="r"><code>fullAnswerData$plonePath &lt;- as.character(fullAnswerData$plonePath)</code></pre>
 <p>cue_all lítur miklu betur út.</p>
 <p>Byrja með að vinna í cue_all, get ekki sameinað eins og er.</p>
 <p>Allt sem er í cue_all þarf að tengjast við eitthvað í fullanswerData</p>
@@ -513,8 +511,16 @@ str(fullAnswerData$plonePath)</code></pre>
 ## [22] &quot;title&quot;            &quot;dir&quot;              &quot;qName&quot;           
 ## [25] &quot;hash&quot;             &quot;hash2&quot;            &quot;hash3&quot;           
 ## [28] &quot;numQ&quot;             &quot;notaType&quot;</code></pre>
+<p>Minnka þetta niður til að skoða fyrir minna</p>
 <pre class="r"><code>fullAnswerData%&gt;%dplyr::select(plonePath,questionId)-&gt;miniA
-miniA&lt;-as.data.frame(miniA)</code></pre>
+#miniA&lt;-as.data.frame(miniA)</code></pre>
+<pre class="r"><code>names(cue1) &lt;- c(&quot;plonepath&quot;)
+cue1$cue &lt;- &quot;1&quot;</code></pre>
+<pre class="r"><code>ID &lt;- miniA[grep(cue1,miniA$plonePath),]</code></pre>
+<pre><code>## Warning in grep(cue1, miniA$plonePath): argument &#39;pattern&#39; has length &gt; 1
+## and only the first element will be used</code></pre>
+<pre class="r"><code>##kminiB &lt;- left_join(miniA, cue1)</code></pre>
+<p>ID_Nj &lt;- miniA[grep(paste(Qgen_Nj,collapse = “|”),miniA$plonePath),] ID_Nj</p>
 <p>##ID_Nj &lt;- miniA[grep(paste(Qgen_Nj,collapse = “|”),miniA$plonePath),] ##ID_Nj</p>
 <p>#question-ID hjá NOTA+ spurningum ##qID_Nj &lt;- ID_Nj%&gt;%pull(questionId) ##qID_Nj</p>
 <p>#spurningarnar á NOTA+ ##spr_Nj &lt;- myQuestions%&gt;%filter(questionId %in% qID_Nj) ##spr_Nj</p>

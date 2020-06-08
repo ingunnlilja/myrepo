@@ -15,6 +15,7 @@ library(dplyr)
 library(RMySQL)
 library(tidyr)
 library(MASS)
+library(compare)
 library(ggplot2)
 library(rvest)
 library(dplyr)
@@ -57,48 +58,36 @@ fullAnswerData <- as.data.frame(fullAnswerData)
 ```
 
 ```{r}
-##question %>%
-  ##collect() %>%
-  ##filter(grepl("cue", plonePath)) %>%
-  ##select(plonePath) -> tmp
+#Kóðinn á bakvið cue1. Villa á select.
+fullAnswerData %>%
+  collect() %>%
+  filter(grepl("cue", plonePath)) %>%
+  select(plonePath) -> tmp
 ```
-
 
 ## WOOOOHOOOOO keyrir 
 
 ```{r}
+## töflurnar með vísbendingunum, benda í plonepath
 cue1 <- read.table("cue_all.txt")
 cue2 <- read.table("cuelist.txt")
-names(cue1)
-names(cue2)
+glimpse(cue1)
+glimpse(cue2)
 ```
-
+cue
 ```{r}
-nrow(cue1)
-```
-
-```{r}
-nrow(cue2)
-```
-
-```{r}
-str(cue1)
+anyDuplicated(cue1)
 ```
 Virðast ekki vera endurtekningar í cue1
 
 ```{r}
 summary(cue2)
-```
-cue2 er með tveim vigrum þar sem ég er ekki viss hvor er hvað og það er greinilega haugur af endurtekningum. Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????
-
-```{r}
-anyDuplicated(cue1)
 anyDuplicated(cue2$V1)
 anyDuplicated(cue2$V2)
-fullAnswerData$plonePath <- as.factor(fullAnswerData$plonePath)
-str(fullAnswerData$plonePath)
-anyDuplicated(fullAnswerData$plonePath)
 ```
+Endurtekingarnar í V2 eru mjög miklar. Samt er cue2 styttri en hinn????
+
+cue 2 er með tveim dálkum þar sem seinni dálkurinn er það seinasta línan í plonepath hjá hinum.
 
 cue_all lítur miklu betur út.
 
@@ -106,53 +95,77 @@ Byrja með að vinna í cue_all, get ekki sameinað eins og er.
 
 Allt sem er í cue_all þarf að tengjast við eitthvað í fullanswerData
 
+Skýri V1 í cue1 plonepath, í cue2 skýri ég V1 plonepath og V2 ID
+
+```{r}
+names(cue1) <- c("plonepath")
+names(cue2) <- c("plonepath", "ID")
+```
+
 ```{r}
 names(fullAnswerData)
 ```
 
+Minnka þetta niður til að skoða fyrir minna
+
 ```{r}
-fullAnswerData%>%dplyr::select(plonePath,questionId)->miniA
-miniA<-as.data.frame(miniA)
+fullAnswerData%>%dplyr::select(plonePath, qName)->miniA
+miniA <- as.data.frame(miniA)
+summary(miniA)
 ```
 
- 
-##ID_Nj <- miniA[grep(paste(Qgen_Nj,collapse = "|"),miniA$plonePath),]
-##ID_Nj
-
-#question-ID hjá NOTA+ spurningum
-##qID_Nj <- ID_Nj%>%pull(questionId)
-##qID_Nj
-
-#spurningarnar á NOTA+
-##spr_Nj <- myQuestions%>%filter(questionId %in% qID_Nj)
-##spr_Nj
-
-##allt klabbið á NOTA+
-##svör_Nj <- myAnswer%>%filter(questionId %in% qID_Nj)
-##svör_Nj
-
-##Qgen <- hashes%>%pull(qName)
-
-
-Langar að tengja samana cue við eitthvað annað.
-
-Er komið með töflu sem heitir hash (bighashfile) töflu sem heitir cue(cue_all) og svo grunn breyturnar sem komnar eru úr sjálfum gagnagrunninum.
-
-Tengja saman spurningar?
-
-Cue bendir á spurningar sem höfðu vísbendingar.
-
-Búa til nýja hash skrá.
-
-Qgen gæti tengst
-
-Inní my answers er samband 
-
-inner join á cue eða að minnsta kosti leita að duplicates.
-
-cue-in liggja í plonepath.
+```{r}
+cue1$cue <- "1"
+cue2$cue <- "1"
+```
 
 ```{r}
-##fullAnswerData$plonePath
+## Taka til í báðum cue listum.
+cue1$plonepath <- gsub(cue1$plonepath, pattern=".cue$", replacement="")
+cue2$ID <- gsub(cue2$ID, pattern=".cue$", replacement="")
+cue2$plonepath <- gsub(cue2$plonepath, pattern="cue.tex:%ID$", replacement="")
+```
+
+```{r}
+## Taka út tvær línur sem eru greinilega bull
+cue2 <- filter(cue2, !ID == "matches")
+cue2 <- filter(cue2, !plonepath == "Binary")
+```
+
+```{r}
+plone <- cue2%>%pull(ID)
+```
+
+```{r}
+tenging <- miniA[grep(paste(plone,collapse = "|"),miniA$qName),]
+```
+
+```{r}
+teng <- miniA[unique(grep(paste(plone, collapse="|"), miniA$qName)),]
+```
+
+```{r}
+data <- filter(miniA, grepl(paste(plone,collapse = "|"),miniA$qName))
+```
+
+```{r}
+tbl(twDb,"question")%>%collect()%>%filter(grepl("cue", plonePath)) -> cue
+```
+
+Fann questionId með þessu!!!!!!!!!!!!!!
+
+Þá er að tengja questionId við fullanswerdata.
+
+```{r}
+left_join(cue,fullAnswerData)->virkar
+inner_join(cue, fullAnswerData, by="questionId") -> kannski
+```
+
+```{r}
+ID <- cue%>%pull(questionId)
+```
+
+```{r}
+
 ```
 
