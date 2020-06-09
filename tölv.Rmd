@@ -164,8 +164,3 @@ inner_join(cue, fullAnswerData, by="questionId") -> kannski
 ```{r}
 ID <- cue%>%pull(questionId)
 ```
-
-```{r}
-
-```
-
