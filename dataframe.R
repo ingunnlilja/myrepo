@@ -43,4 +43,6 @@ answer %>%
   filter(any(questionId %in% local(cue_id_vec$questionId))) -> answer_cue_full
 
 write_csv(x = answer_cue_full, path = 'data/answer_cue_full.csv')
+
+#Rammi kominn til að vinna með.
          
