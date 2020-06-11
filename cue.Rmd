@@ -26,3 +26,48 @@ library(kableExtra)
 library(xtable)
 ```
 
+```{r}
+#Tafla með öllum cue tilfellum - nemdendur og fyrirlestrar þar sem þær komu fyrir inni
+ac <- read.csv("data/answer_cue_full.csv")
+#Búið að flokka cue eftir að það komi fyrir og eftir
+cr <- read.csv("data/cue_rett.csv")
+#SKIL EKKI HVAÐ SUM_C ER AÐ GERA
+```
+
+#operation tölfræði
+
+```{r}
+summary(ac)
+```
+Breyta í factor:
+```{r}
+#augljóslega factorar
+ac$answerId <- as.factor(ac$answerId)
+ac$lectureId <- as.factor(ac$lectureId)
+ac$studentId <- as.factor(ac$studentId)
+ac$questionId <- as.factor(ac$questionId)
+#rétt eða rangt sem factor/binary
+ac$correct <- as.factor(ac$correct)
+ac$cue <- as.factor(ac$cue)
+```
+
+```{r, cache=TRUE}
+#Eyða uqQuestionGuid
+ac <- dplyr::select(ac, -(ugQuestionGuid))
+#Eyða coinsAwarded
+ac <- dplyr::select(ac, -(coinsAwarded))
+```
+
+7724 gildi af cue spurningum skv. þessu.
+
+```{r}
+summary(cr)
+```
+
+```{r}
+cr$lectureId <- as.factor(cr$lectureId)
+cr$studentId <- as.factor(cr$studentId)
+cr$cue <- as.factor(cr$cue)
+cr$correct <- as.factor(cr$correct)
+```
+
