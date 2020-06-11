@@ -1,0 +1,28 @@
+---
+title: "cue"
+author: "Ingunn Lilja Bergsdóttir"
+date: "6/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dbplyr)
+library(dplyr)
+library(RMySQL)
+library(tidyr)
+library(MASS)
+library(compare)
+library(ggplot2)
+library(rvest)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(gridExtra)
+library(kableExtra)
+library(xtable)
+```
+
