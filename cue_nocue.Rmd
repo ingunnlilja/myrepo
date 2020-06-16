@@ -1,0 +1,134 @@
+---
+title: "cue/nocue"
+author: "Ingunn Lilja Bergsdóttir"
+date: "6/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dbplyr)
+library(dplyr)
+library(RMySQL)
+library(tidyr)
+library(MASS)
+library(compare)
+library(ggplot2)
+library(rvest)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(gridExtra)
+library(kableExtra)
+library(xtable)
+library(car)
+```
+
+```{r}
+cue_nocue <- read.csv("data/answers_cue_nocue.csv")
+```
+
+```{r}
+summary(cue_nocue)
+```
+
+Sama tiltekt og í ac:
+
+```{r}
+cue_nocue$answerId <- as.factor(cue_nocue$answerId)
+cue_nocue$lectureId <- as.factor(cue_nocue$lectureId)
+cue_nocue$studentId <- as.factor(cue_nocue$studentId)
+cue_nocue$questionId <- as.factor(cue_nocue$questionId)
+cue_nocue$chosenAnswer <- as.factor(cue_nocue$chosenAnswer)
+cue_nocue$correct <- as.factor(cue_nocue$correct)
+cue_nocue$lectureVersion <- as.factor(cue_nocue$lectureVersion)
+cue_nocue$cue <- as.factor(cue_nocue$cue)
+```
+
+```{r}
+cue_nocue <- dplyr::select(cue_nocue, -(ugQuestionGuid))
+cue_nocue <- dplyr::select(cue_nocue, -(coinsAwarded))
+cue_nocue <- dplyr::select(cue_nocue, -(practice))
+cue_nocue <- dplyr::select(cue_nocue, -(lectureVersion))
+cue_nocue <- dplyr::select(cue_nocue, -(chosenAnswer))
+```
+
+```{r}
+ggplot(cue_nocue, aes(x=cue_nocue$cue)) + geom_bar() + labs(y="Fjöldi", x="Cue")
+```
+
+Gagnaramminn sem ég hef núna er settur upp útfrá öllum cue spurningum og svo öllum tilvikum af sömu spuringum settum fram án cue. 
+
+```{r}
+cue_nocue$cue <- as.factor(cue_nocue$cue)
+ggplot(data=cue_nocue, aes(x=cue_nocue$cue, y=cue_nocue$grade, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn") + ggtitle("Einkunn með/án vísbendinga")
+```
+
+```{r}
+ak <-filter(cue_nocue, cue==1)
+kable(quantile(ak$grade, na.rm = T))
+```
+
+```{r}
+as <-filter(cue_nocue, cue==0)
+kable(quantile(as$grade, na.rm = T))
+```
+
+Hærri einkunn á cue spurningarnar.
+
+```{r}
+cue_nocue %>%
+  group_by(cue) %>%
+    summarise(fjoldi=length(cue), medal_einkunn=mean(grade, na.rm = T), midgildi=median(grade, na.rm = T) ) %>%
+      kable() %>%
+        kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+```{r}
+fervik1 <- aov(cue_nocue$grade ~ cue_nocue$cue)
+anova(fervik1)
+```
+
+Marktækur munur á meðaltölunum miðað við p-gildið.
+
+```{r}
+ggplot(data = cue_nocue, aes(x=cue, fill = correct)) + geom_bar() + xlab ( "rétt/rangt") + ylab("fjoldi")
+```
+
+```{r}
+#Hlutfallatafla
+kable(round(prop.table(table(cue_nocue$cue, cue_nocue$correct), margin=2), 3))
+```
+
+Er með lóðrétt cue og lárétt rett eða rangt. Segir mér í rauninni ekkert.
+
+```{r}
+fit <- lm(grade ~ cue, data = cue_nocue)
+summary(fit)
+```
+
+```{r}
+fit_cr <- glm(correct ~ cue + grade, family = binomial(link = "logit"), data = cue_nocue)
+fit_cr
+```
+
+```{r}
+oumph <- sum(fit_cr$coefficients * c(1, 1, 5))
+1/(1 + exp(-oumph))
+
+oumph <- sum(fit_cr$coefficients * c(1, 0, 5))
+1/(1 + exp(-oumph))
+```
+nemandi sem er með 5 í einkunn og fær cue spurningu gerir rétt í 81% tilvika. Ef nemandinn fær ekki vísbendingaspurningu lækka gagnlíkindin í 77%.
+
+```{r}
+exp(fit_cr$coefficients)
+```
+33% og 55% túlkun:
+
+Mig vantar góðar myndir.
+
+

@@ -50,7 +50,7 @@ lecture %>%
 #safna eftir lecture og student -
 #filtera svo í gegn með að bara séu sp. í cue.
 answer %>%
-  #group_by(lectureId, studentId) %>%
+  group_by(lectureId, studentId) %>%
   #Miðað við þetta er ekki allt cue en er bara með lecture þar sem það kom fyrir
   filter(lectureId %in% local(cue_lecture)) %>%
   collect() %>%
@@ -66,7 +66,6 @@ answer_cue_full %>%
 
 write_csv(x = answer_cue_full, path = 'data/answer_cue_full.csv')
 
-#Rammi kominn til að vinna með.
 
 #Búa til cue rétt - skil ekki alveg
 
@@ -91,15 +90,17 @@ write_csv(x = answer_cue_full, path = 'data/answer_cue_full.csv')
           #set líka attempt = row_number, tilraun númer?
           attempt = row_number()) %>% 
    #Vel svo út aðeins þessa dálka
-   dplyr::select(cue, cue_seq, attempt, correct) %>%
+   dplyr::select(cue, cue_seq, attempt, correct, grade) %>%
    #Vil aðeins hafa cue_seq == 1 þar sem þá fæ ég niðurstöðu á hvort cue hjálpaði eða ekki
    filter(cue_seq == 1) %>%
    #raða í rétta röð
    dplyr::arrange(lectureId, studentId, attempt) %>%
    #bæti tinn sum_c sem er summa cue_seq
    mutate(sum_c = sum(cue_seq)) %>%
-   #Vil bara hafa deilanlegt með 3
    filter(sum_c %% 3 == 0) -> cue_rett
  
  write_csv(x = cue_rett, path = 'data/cue_rett.csv')
+ 
+ 
+   
  

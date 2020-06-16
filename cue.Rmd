@@ -24,6 +24,7 @@ library(tidyverse)
 library(gridExtra)
 library(kableExtra)
 library(xtable)
+library(car)
 ```
 
 ```{r}
@@ -31,7 +32,6 @@ library(xtable)
 ac <- read.csv("data/answer_cue_full.csv")
 #Búið að flokka cue eftir að það komi fyrir og eftir
 cr <- read.csv("data/cue_rett.csv")
-#SKIL EKKI HVAÐ SUM_C ER AÐ GERA
 ```
 
 #operation tölfræði
@@ -47,7 +47,7 @@ ac$lectureId <- as.factor(ac$lectureId)
 ac$studentId <- as.factor(ac$studentId)
 ac$questionId <- as.factor(ac$questionId)
 #rétt eða rangt sem factor/binary
-ac$correct <- as.factor(ac$correct)
+# ac$correct <- as.factor(ac$correct)
 ac$cue <- as.factor(ac$cue)
 ```
 
@@ -56,6 +56,8 @@ ac$cue <- as.factor(ac$cue)
 ac <- dplyr::select(ac, -(ugQuestionGuid))
 #Eyða coinsAwarded
 ac <- dplyr::select(ac, -(coinsAwarded))
+#Eyða practice
+ac <- dplyr::select(ac, -(practice))
 ```
 
 7724 gildi af cue spurningum skv. þessu.
@@ -64,10 +66,158 @@ ac <- dplyr::select(ac, -(coinsAwarded))
 summary(cr)
 ```
 
+
 ```{r}
 cr$lectureId <- as.factor(cr$lectureId)
 cr$studentId <- as.factor(cr$studentId)
 cr$cue <- as.factor(cr$cue)
 cr$correct <- as.factor(cr$correct)
+```
+
+# Byrja á að skoða fyrri töfluna.
+ 
+Ég hef cue [já, nei] svo hef ég rétt eða rangt eða einkunn sem er einföld byrjun.
+
+```{r}
+ggplot(ac, aes(x=ac$cue)) + geom_bar() + labs(y="Fjöldi", x="Cue")
+```
+
+```{r}
+ggplot(ac, aes(x=ac$cue, fill=correct=="1")) + geom_bar() + labs(y="Fjöldi", x="cue", fill="Rétt/Rangt")
+```
+
+```{r}
+# #Afhverju virkar þetta ekki?
+# ac$cue <- as.integer(ac$cue)
+# ac$correct <- as.integer(ac$correct)
+# tafla1 <- group_by(ac, cue) %>% summarise('Fjöldi'=n(), 'Fjöldi réttra svara'=sum(correct), 'Einkunn fyrir allt'=sum(correct)/n(), 'Medaltal'=sum(cue)/n())
+# kable(tafla1) %>% kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Mig langar að blanda römmunum saman vil fá einkunnir inní cr og seq í ac.
+
+Einkunnir í cr!
+
+```{r}
+ac$correct <- as.factor(ac$correct)
+ac$cue <- as.factor(ac$cue)
+ggplot(data=ac, aes(x=ac$cue, y=ac$grade, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn") + ggtitle("Einkunn með/án vísbendinga")
+```
+Lægri einkunn með vísbendingum??????????????????
+
+```{r}
+ak <-filter(ac, ac$cue==1)
+kable(quantile(ak$grade))
+```
+
+```{r}
+as <- filter(ac, ac$cue==0)
+kable(quantile(as$grade))
+```
+
+Líklega ekki marktækt þarf að skoða aðeins hvernig munurinn er á cue spurnignum eins og í cr.
+
+```{r}
+ac$cue <- as.factor(ac$cue)
+ac %>%
+  group_by(cue) %>%
+    summarise(fjoldi=length(cue), medal_einkunn=mean(grade), midgildi=median(grade) ) %>%
+      kable() %>%
+        kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Mig vantar grade inní cr - breyta upprunalega kóðanum ?
+KOMIÐ
+
+```{r}
+# cr %>%
+#   group_by(cue) %>%
+#     summarise(fjoldi=length(cue), medal_einkunn=mean(grade), midgildi=median(grade), fjöldi_réttra_svara = length(dplyr::select(cr, correct==1)) ) %>%
+#       kable() %>%
+#         kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+
+```{r}
+kable(tapply(ac$grade,ac$cue,mean))
+```
+
+```{r}
+kable(tapply(ac$grade,ac$cue,median))
+```
+
+
+```{r}
+fervik1 <- aov(ac$grade ~ ac$cue)
+anova(fervik1)
+```
+Örsmátt p gildi hafna núlltilgátu að það sé ekki munur.
+
+Sama próf fyrir cr
+
+```{r}
+fervik2 <- aov(cr$grade ~ cr$cue)
+anova(fervik2)
+```
+Get ekki hafnað núlltilgátunni með þetta p gildi, það getur verið að það sé ekki marktækur munur.
+
+Boxplot á lag, lead og cue. Henda inn línulegu líkani.
+
+```{r}
+ggplot(data = ac, aes(x=cue, fill = correct)) + geom_bar() + xlab ( "rétt/rangt") + ylab("fjoldi")
+```
+
+```{r}
+ggplot(data = cr, aes(x=cue, fill = correct)) + geom_bar() + xlab ( "rétt/rangt") + ylab("fjoldi")
+```
+
+Skoða hlutfallið á milli?
+
+```{r}
+#hlutfallatafla
+kable(round(prop.table(table(ac$cue, ac$correct), margin=2), 3))
+```
+
+```{r}
+kable(round(prop.table(table(cr$cue, cr$correct), margin=2), 3))
+```
+Verð að skoða fyrir og eftir í cr.
+
+```{r}
+Fitac <- lm(grade ~ cue, data = ac)
+summary(Fitac)
+
+Fitcr <- lm(grade ~ cue, data = cr)
+summary(Fitcr)
+
+```
+Marktækur munur í ac ekki í cr.
+
+```{r}
+mean(cr$grade)
+```
+
+
+```{r}
+fit_cr <- glm(correct ~ cue + grade, family = binomial(link = "logit"), data = cr)
+fit_cr
+```
+
+```{r}
+oumph <- sum(fit_cr$coefficients * c(1, 1, 6))
+1/(1 + exp(-oumph))
+```
+
+Nemandi sem fær vísb. sp og er með einkunnina 6 gerir rétt svar í 86% tilvika
+
+```{r}
+oumph2 <- sum(fit_cr$coefficients * c(1, 0, 6))
+1/(1 + exp(-oumph2))
+```
+
+cue breytir engu hér. Þarf að skoða fyrir og eftir cue sérstaklega.
+
+```{r}
+exp(fit_cr$coefficients)
 ```
 
