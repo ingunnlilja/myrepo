@@ -25,6 +25,7 @@ library(gridExtra)
 library(kableExtra)
 library(xtable)
 library(car)
+library(gtable)
 ```
 
 ```{r}
@@ -35,7 +36,9 @@ cue_nocue <- read.csv("data/answers_cue_nocue.csv")
 summary(cue_nocue)
 ```
 
-Sama tiltekt og í ac:
+```{r}
+names(cue_nocue)
+```
 
 ```{r}
 cue_nocue$answerId <- as.factor(cue_nocue$answerId)
@@ -43,7 +46,7 @@ cue_nocue$lectureId <- as.factor(cue_nocue$lectureId)
 cue_nocue$studentId <- as.factor(cue_nocue$studentId)
 cue_nocue$questionId <- as.factor(cue_nocue$questionId)
 cue_nocue$chosenAnswer <- as.factor(cue_nocue$chosenAnswer)
-cue_nocue$correct <- as.factor(cue_nocue$correct)
+cue_nocue$correct <- as.integer(cue_nocue$correct)
 cue_nocue$lectureVersion <- as.factor(cue_nocue$lectureVersion)
 cue_nocue$cue <- as.factor(cue_nocue$cue)
 ```
@@ -60,12 +63,35 @@ cue_nocue <- dplyr::select(cue_nocue, -(chosenAnswer))
 ggplot(cue_nocue, aes(x=cue_nocue$cue)) + geom_bar() + labs(y="Fjöldi", x="Cue")
 ```
 
+Ekki galin munur eins og áður. 
 Gagnaramminn sem ég hef núna er settur upp útfrá öllum cue spurningum og svo öllum tilvikum af sömu spuringum settum fram án cue. 
 
 ```{r}
 cue_nocue$cue <- as.factor(cue_nocue$cue)
 ggplot(data=cue_nocue, aes(x=cue_nocue$cue, y=cue_nocue$grade, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn") + ggtitle("Einkunn með/án vísbendinga")
 ```
+
+Meðaleinkunn með cue er orðin hærri!
+
+Vil skoða hvort það skipti meira máli fyrir fólk með lægri eða hærri einkunnir að fá cue sp.
+
+```{r}
+cu1 <- filter(cue_nocue, grade<=5)
+cu2 <- filter(cue_nocue, grade>=5)
+```
+
+
+```{r}
+cu1$cue <- as.factor(cu1$cue)
+ggplot(data=cu1, aes(x=cu1$cue, y=cu1$grade, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn cue1") + ggtitle("Einkunn með/án vísbendinga nemendur undir 5")
+```
+
+```{r}
+cu2$cue <- as.factor(cu2$cue)
+ggplot(data=cu2, aes(x=cu2$cue, y=cu2$grade, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn cu2") + ggtitle("Einkunn með/án vísbendinga, nemendur yfir 5")
+```
+
+cue kemur miklu betur út fyrir nemendur með einkunn yfir 5.
 
 ```{r}
 ak <-filter(cue_nocue, cue==1)
@@ -77,6 +103,25 @@ as <-filter(cue_nocue, cue==0)
 kable(quantile(as$grade, na.rm = T))
 ```
 
+```{r}
+names(cue_nocue)
+#table(cue_nocue$plonePath)
+```
+
+```{r}
+# table(cue_nocue$questionId, cue_nocue$cue)
+```
+
+```{r}
+prop.test(table(cue_nocue$correct, cue_nocue$cue))
+```
+
+```{r}
+table(correct=cue_nocue$correct, cue=cue_nocue$cue)
+prop.table(table(correct=cue_nocue$correct, cue=cue_nocue$cue),2)
+```
+
+
 Hærri einkunn á cue spurningarnar.
 
 ```{r}
@@ -87,15 +132,25 @@ cue_nocue %>%
         kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
+Aftur með einkunn yfir eða undir fimm
 ```{r}
-fervik1 <- aov(cue_nocue$grade ~ cue_nocue$cue)
-anova(fervik1)
+cu1 %>%
+  group_by(cue) %>%
+    summarise(fjoldi=length(cue), medal_einkunn=mean(grade, na.rm = T), midgildi=median(grade, na.rm = T) ) %>%
+      kable() %>%
+        kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-Marktækur munur á meðaltölunum miðað við p-gildið.
+```{r}
+cu2 %>%
+  group_by(cue) %>%
+    summarise(fjoldi=length(cue), medal_einkunn=mean(grade, na.rm = T), midgildi=median(grade, na.rm = T) ) %>%
+      kable() %>%
+        kable_styling(bootstrap_options = c("striped", "hover"))
+```
 
 ```{r}
-ggplot(data = cue_nocue, aes(x=cue, fill = correct)) + geom_bar() + xlab ( "rétt/rangt") + ylab("fjoldi")
+ggplot(data = cue_nocue, aes(x=cue, fill=correct=="1")) + geom_bar() + labs(y="Fjöldi", x="cue", fill="Rétt/Rangt")
 ```
 
 ```{r}
@@ -106,9 +161,21 @@ kable(round(prop.table(table(cue_nocue$cue, cue_nocue$correct), margin=2), 3))
 Er með lóðrétt cue og lárétt rett eða rangt. Segir mér í rauninni ekkert.
 
 ```{r}
-fit <- lm(grade ~ cue, data = cue_nocue)
+fit <- lm(correct ~ cue + grade, data = cue_nocue)
 summary(fit)
 ```
+Módelið $$ E(Y) = 0.356 + 0.033 x_1 + 0.07 x_2 $$ $x_1$ er cue og $x_2$ er einkunn. Örsmátt p gildi á línuna.
+
+```{r}
+confint(fit, level = 0.95)
+```
+
+```{r}
+anova.fit <- anova(fit)
+anova.fit
+```
+Marktækur munur á meðaltölum fyrir bæði cue og grade.
+
 
 ```{r}
 fit_cr <- glm(correct ~ cue + grade, family = binomial(link = "logit"), data = cue_nocue)
@@ -130,5 +197,9 @@ exp(fit_cr$coefficients)
 33% og 55% túlkun:
 
 Mig vantar góðar myndir.
+
+Hjálpa vísbendingar frekar nemum með hærri eða lægri einkunn?
+
+
 
 
