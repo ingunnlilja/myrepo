@@ -1,0 +1,468 @@
+---
+output: 
+  bookdown::pdf_document2:
+    fig_caption: yes
+    toc: no
+    includes:
+      before_body: template/fp.sty # Forsíða
+      in_header: template/header.tex # TeX haus
+    keep_tex: yes
+fontsize: 10pt
+geometry: margin=1in
+graphics: yes
+---
+
+# Inngangur
+```{r message=FALSE, warning=FALSE, include=FALSE}
+source('scripts/settings.R')
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+cue_nocue <- read_csv('data/answers_cue_nocue.csv')
+```
+
+Markmið verkefnisins var að greina hvort og hversu mikil áhrif það hefði fyrir nemendur að fá cue spurningar frekar en venjulegar spurningar. Einnig var ákveðið að greina með power útreikningum hversu stórt hlutfall af spurningum og hversu mörg svör þyrfti til að setja upp rannsókn þar sem gögnin væri enn sambærilegri og hægt væri að tryggja marktækni á niðurstöðum. 
+
+## Rannsóknarspurning
+
+Hafa vísbendingaspurningar marktæk áhrif á frammistöðu nemenda í tutor-web kennslukerfinu.
+
+# Kóði
+
+Allur kóði sem var smíðaður til að skapa myndir, töflur og likön má finna á [Github](https://github.com/ingunnlilja/myr)
+
+# Lýsandi tölfræði
+
+## Gögn og breytur
+
+Gagnarammi af svörum nemenda var smíðaður útfrá tutor-web gagnasafninu sem innihélt breyturnar cue, qName, studentId, grade og correct.
+  
+  
+  1. Cue
+  
+  * Tvíkostabreyta sem segir til hvort spurning hafi verið vísbendingaspurning eða ekki.
+  * Allar spurningar í gagnarammanum voru að minnsta kosti með eitt svar af hvorri gerð.
+  * Ef breytan var jafngild 0 var spurningin ekki með vísbendingu en ef breytan var jafngild 1 var spurningin með vísbendingu.
+  
+  2. qName
+  
+  * Heitið á spurningu. Farið var í gegnum tutor-web gagnagrunninn og fundið allar spurningar sem bornar höfðu verið fram bæði með og án vísbendingu. 49 slíkar spurniningar fundust.
+
+
+  3. StudentId
+  
+  * Tilgreinir nemanda sem svaraði fyrir hvert svar.
+
+
+  4. Grade
+
+  * Áunninn einkunn nemenda fyrir öll svör til og með svarinu sem grade er skráð við.
+  
+  
+  5. Correct.
+  
+  * Tvíkosta breyta sem segir til um hvort svarið hafi verið rétt eða rangt.
+  
+  
+\newpage
+
+## Fjöldi svara
+
+Til þess að sjá hversu mörg svör eru til staðar við spurningunum 98, þar af helmingur cue, er sett upp stuðlarit sem sýnir fjölda svara við bæði cue og ekki cue spurningunum. Inná myndina er svo merkt hversu mörg svör þar af voru rétt eða röng. 
+
+```{r mynd1, echo=FALSE, fig.align='center', fig.cap="Fjöldi svara með/án cue", fig.pos='H', out.width='100%'}
+include_graphics('img/fjoldi_cuenocue.png')
+```
+
+Sjáum að umtalsvert meira af án cue svörum er til staðar í gagnasettinu.
+
+Tölulegar upplýsingar myndar \ref{fig:mynd1} voru settar fram í töflu.
+
+
+```{r tafla1, echo=F, message=FALSE, warning=FALSE}
+cue_nocue$correct <- with(cue_nocue, ifelse(correct==1, "Rétt", "Rangt"))
+Heild <- sum
+
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild, quiet = TRUE) %>%
+  kable(col.names = c("Án cue",
+                      "Með cue",
+                      "Heild"), 
+        align = c('cccc'), 
+        booktabs = T,
+        'latex',
+        caption = '(\\#tab:strings) Hér má sjá fjölda svara eftir cue og correct',
+        linesep = '',
+        escape = F) %>%
+  kable_styling(full_width = F,
+                latex_options = 'hold_position') 
+
+cue_nocue$correct <- with(cue_nocue, ifelse(correct=="Rétt", 1, 0))
+cue_nocue$correct <- as.integer(cue_nocue$correct)
+```
+
+
+Sjá má að langstærsti flokkurinn er rétt svar án cue með 16399 svör, á móti eru aðeins 1372 röng svör án cue. Einnig er ljóst að cue svör eru umtalsvert færri en án cue svörin. Mögulegt er að ekki sé nægilega mikið af cue svörum til staðar og því var farið í power útreikninga í lok skýrslunnar til þess að kanna hvort og hversu mikið vantar uppá.
+
+\newpage
+
+### Hlutföll
+
+Miðað við mynd \ref{fig:mynd1} og töflu \@ref(tab:tafla1) er mjög mikill munur á fjölda svara af hvorri gerð og til að sjá betur hversu mikill munurinn er í gagnasettninu var sett up tafla sem sýnir hlutfall cue og ekki cue svara.
+
+```{r tafla2, echo=F, message=FALSE, warning=FALSE}
+hlutfall_heild <- read_csv('tables/hlutfall_heild.csv')
+
+hlutfall_heild %>%
+   kable(booktabs = T, 'latex',
+       align = c('cc'),
+       col.names = c('Cue', 'Hlutfall'),
+       caption = '(\\#tab:strings) Hlutföll á milli svara ',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+Sjáum að um 80% gagnasettsins eru án cue svör.
+
+Til þess að sjá betur hver hlutfallslegi munurinn á milli réttra og rangra svara eftir cue var sett upp sambærileg tafla og \@ref(fig:tafla1) sem sýnir hlutföll af heild eftir cue og án cue svara miðað við rétt eða rangt.
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+hlutfall <- read_csv('tables/hlutfall.csv')
+
+hlutfall %>%
+   kable(booktabs = T, 'latex',
+       align = c('ccc'),
+       col.names = c('', 'Án Cue', 'Með cue'),
+       caption = '(\\#tab:strings) Hlutföll á milli svara ',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position') 
+```
+
+
+Samkvæmt töflunni eru hlutfallslega fleiri cue spurningar réttar eða 77% á móti 73%. Munurinn er þó ekki mikill og var sett upp hlutfallapróf til að kanna hvort munurinn sé marktækur.
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+hlutfallaprof <- read_csv("tables/hlutfallaprof.csv")
+
+hlutfallaprof %>% 
+  kable(booktabs = T, 'latex',
+       align = c('ccccccc'),
+       #col.names = c('', 'Án Cue', 'Með cue'),
+       caption = '(\\#tab:strings) Hlutfallapróf með prop.test',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+
+```
+
+Tilgátuprófið var „2-sample test for equality of proportions with continuity correction“ með gagntilgátuna „two-sided“. Munurinn er marktækur með p-gildi u.þ.b. 0 og 95% öryggisbil fyrir mismun hlutfallanna frá þremur prósentum uppí fimm prósent.
+Niðurstaðan er vísbending um að mögulega standist það að nemendur sem fá cue spruningu séu líklegri til að svara spurningu rétt.
+
+
+## Meðaleinkunn
+
+Til þess að sjá hver munurinn er á meðaleinkunn á milli hópanna tveggja var fjölda réttra svara deilt með fjölda svara innan hvors hóps fyrir sig. Niðurstöðurnar voru svo settar fram í töflu.
+
+```{r tafla3, echo=F, message=FALSE, warning=FALSE}
+medaleink <- read_csv("tables/medaleink_cuenocue.csv")
+
+medaleink %>%
+  kable(booktabs = T,
+        'latex',
+       align = c('cc'),
+       col.names = c('cue', 'meðaleinkunn'),
+       caption = '(\\#tab:strings) Meðaleinkunn eftir cue eða ekki cue',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+Meðaleinkunnin er u.þ.b. 0.5 hærri fyrir svör við vísbendinga spurningum en spurningum án þeirra.
+
+Tafla \@ref(fig:tafla3) miðar við fjölda réttra svara deilt með fjölda svara en til þess að geta sett upp kassarit sem sýnir fjórðungamörk fyrir hvorn flokk fyrir sig var ákveðið að flokka niður svörin á hverja spurningu. Nýr gagnarammi var búin til sem innihélt eftirfarandi breytur.
+
+
+  1. QName
+  
+  * Tilgreindi spurninguna. Hvert qName kemur tvisvar sinnum. 49 ólík gildi.
+  
+  2. Cue 
+  
+  * Merkti hvort um var að ræða cue eða ekki cue. Hvert qName kemur fyrir einu sinni með cue=0 og einu sinni með cue=1
+  
+  3. Meðaleinkun 
+  
+  * Nýja breytan sem er fjölda réttra svara á spurningu deilt með fjölda svara á spurningu.
+  
+  
+Útfrá þessum uppglýsingum var hægt að setja upp kassarit fyrir meðaleinkunn á spurningu eftir cue eða ekki.
+
+```{r mynd5, echo=FALSE, fig.align='center', fig.cap="Meðaleinkunn á spurningu eftir cue eða ekki", fig.pos='H', out.width='100%'}
+include_graphics('img/boxp_cuenocue.png')
+```
+
+
+Það er ekki mikill munur á milli hópanna þó cue sé með aðeins hærri fjórðungamörk. Eftirtektarvert að það eru mun fleiri útlagar hjá cue en ekki cue.
+
+\newpage
+
+Tölulegar upplýsingar myndar \ref{fig:mynd5} voru settar fram í töflum.
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+ancue <- read_csv("tables/an_cue_quantile.csv")
+
+ancue %>%
+  kable(booktabs = T,
+        'latex',
+       align = c('cc'),
+       col.names = c('fjórðungamörk','meðaleinkunn'),
+       caption = '(\\#tab:strings) Fjórðungamörk meðaleinkunnar fyrir ekki cue',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+medcue <- read_csv("tables/med_cue_quantile.csv")
+
+medcue %>%
+  kable(booktabs = T,
+        'latex',
+       align = c('cc'),
+       col.names = c('fjórðungamörk','meðaleinkunn'),
+       caption = '(\\#tab:strings) Fjórðungamörk meðaleinkunnar fyrir ekki cue',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+
+Eins og á kassaritinu miðast töflurnar við meðaleinkunn á spurningar. Það munar ekki miklu á milli miðgilda hópanna en efri og neðri fjórðungamörk fyrir cue eru þó nokkuð hærri.
+
+
+\newpage
+## Spurningar
+
+Til þess að sjá hvort og hversu mikill munur var á milli spurninganna 49 sem unnið var með var sett upp punktarit sem sýnir meðaleinkunn á spurningu fyrir cue og ekki cue. Settar voru inn línur fyrir meðaleinkunn með og án cue í sama lit og samsvarandi punktar.
+
+Myndin var búin til útfrá sama gagnasetti og lýst er að ofan þar sem einungis er unnið með spurningarnar ekki svör.
+
+```{r mynd2, echo=FALSE, fig.align='center', fig.cap="Meðaleinkunn á spurningu eftir cue eða ekki", fig.pos='H', out.width='100%'}
+include_graphics('img/eink_sp.png')
+```
+
+Fyrir utan spurningu q04 þar sem meðaleinkunn cue svara er 0 eru spurningarnar allar með nokkuð sambærilegar meðaleinkunnir þar sem bláu punktarnir fyrir cue virðast að staðaldri vera staðsettur skör hærra. Bláa línan er svo sýnilega hærra staðsett en appelsínugula sem staðfestir að bláu punkatanir eru hærri. 
+
+Til þess að sjá betur hvernig munurinn á milli hverrar spurningar er er sett upp stöplarit fyrir hverja spurningu eins og áður en núna settur fram fjöldi svara á hverja spurningu eftir cue og ekki cue.
+
+
+```{r mynd3, echo=FALSE, fig.align='center', fig.cap="Meðaleinkunn á spurningu eftir cue eða ekki", fig.pos='H', out.width='100%'}
+include_graphics('img/fjoldi_a_sp.png')
+```
+
+Verulega mikill munur á fjölda svara á milli spurninga. Eftirtektavert er að það eru greinilega mjög fá svör við spurningu q04 sem hafði meðaleinkunnina 0 fyrir cue spurningar.
+
+
+\newpage
+
+## Nemendur flokkaðir niður eftir grade yfir og undir fimm.
+
+Við hvert svar er skráð grade breyta sem tilgreinir einkunn nemenda þegar hann fær spurninguna. Einkunnin byggist því á fyrri svörum og frammistöðu nemenda. Þótti áhugavert að skoða hvort cue hefði meiri eða minni áhfrif fyrir nemendur yfir eða undir fimm.
+
+
+```{r mynd11, echo=FALSE, fig.align='center', fig.cap="Meðaleinkunn eftir cue eða ekki fyrir nemendur yfir og undir fimm", fig.pos='H', out.width='100%'}
+include_graphics('img/boxp_medal_yfir_undir.png')
+```
+
+Áberandi mikill munur á miðgildum hópanna tveggja cue og ekki cue fyrir nemendur undir fimm. Miðgildi meðaleinkunnar cue svara er miklu hærra en ekki cue svara.
+
+Til þess að skilja betur hvorn flokk fyrir sig, nemendur yfir og undir fimm voru settar upp tvær töflur sem sýna fjölda og meðaleinkunn innan hvors hóps.
+
+\newpage
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+undir <- read_csv("tables/medal_undir.csv")
+
+undir %>% 
+  kable(booktabs = T, 'latex',
+       align = c('ccc'),
+       col.names = c('cue', 'fjöldi', 'Meðaleinkunn'),
+       caption = '(\\#tab:str1) Meðaltal nemenda undir grade fimm eftir cue',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+
+Sjáum að það er svipað mikið af svörum í sitthvorum hópnum. Munurinn á milli hópanna er 0.7 fyrir undir fimm nemendur sem gæti bent til þess að vísbendingaspurningar séu frekar stuðningur við nemendur með lægri einkunn frekar en háa.
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+yfir <- read_csv("tables/medal_yfir.csv")
+
+yfir %>%
+  kable(booktabs = T,
+        'latex',
+       align = c('ccc'),
+       col.names = c('cue', 'fjöldi', 'meðaleinkunn'),
+       caption = '(\\#tab:str2) Meðaltal nemenda yfir grade fimm eftir cue',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+
+Meðaleinkunn nemenda yfir fimm er mjög há fyrir báða hópa og munar litlu sem engu á milli hópanna. 
+
+\newpage
+
+# Líkan
+
+Útfrá upplýsingunum í lýsandi tölfræði kaflanum var sett upp slembiþátta tvíkosta aðhvarfsgreiningarlíkan til að greina hvort cue hefði marktæk áhrif eða ekki. Breyturnar sem voru settar inn eru cue, qName og studentId sem slembiþáttur. Auka breyta var sett inn sem víxlhrif á milli cue og qName.\newline Formúla líkansins var eftirfarandi: $$correct = cue + qName + cue*qName + (1 | studentId)$$
+
+Niðurstöður líkansins voru settar fram í Anova töflu.
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+anova_glmer <- read_csv("tables/anova")
+
+anova_glmer %>%
+  kable(booktabs = T,
+        'latex',
+       #align = c('cccc'),
+       col.names = c('breytur', 'prófstærð', 'frígráður', 'p-gildi'),
+       caption = '(\\#tab:str2) Anova tafla',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+cue er ekki marktækt með p-gildið 0.08 en víxlhrif á milli cue og qName eru marktæk sem og qname. 
+
+\newpage
+
+## Mátgæði líkans
+
+### Kvörðun
+
+Til þess að kanna hversu vel líkaninu gengur að spá fyrir um raungildi í gögnunum var sett upp kvörðunarlíkan þar sem x-ásinn er spá gildi líkansins og y-ásinn raun gildi gagnanna.
+
+```{r, echo=FALSE, fig.align='center', fig.cap="Kvörðun", fig.pos='H', out.width='100%'}
+include_graphics('img/kvordun.png')
+```
+
+Sjáum að líkaninu gengur að staðaldri vel að spá fyrir um gildi líkansins. Upp að 0.7 eru spá gildin að staðaldri of lág og fyrir ofan 0.7 er spáin að staðaldri of há en skekkjan er ekki mikil.
+
+\newpage
+
+### ROC kúrfa, AUC og brier gildi.
+
+Sett var upp ROC kúrfa sem sýnir false positive rate á móti true positive rate líkansins. False positive ásinn merkir þegar líkanið segir að svar sé rétt en svarið var rangt og true positive ásinn stendur fyrir þegar líkanið segir að svar sé rétt og það er rétt.
+Markmiðið er þar með að ROC kúrfan verði sem stærst þannig svæðið undir henni AUC gildið, aðgreiningargeta líkansins, sé sem næst 1. Fullkomin spá væri með AUC gildið 1 þar sem ROC kúrfan skildi ekkert svæði eftir. 
+
+```{r mynd7, echo=FALSE, fig.align='center', fig.cap="ROC", fig.pos='H', out.width='100%'}
+include_graphics('img/ROC.png')
+```
+AUC gildið er 0.7395 sem er allt í lagi. Líkanið hefur þá rétt fyrir sér í 74% tilvika sem er hátt. 
+
+Inná \ref{fig:mynd7} var einnig sett Brier gildi líkansins sem segir til um hversu vel líkaninu tókst til að spá um raungildi gagnanna. Brier gildi er fullomið ef það er einn og bendir svo til gagnslauss líkans ef það er 0.  
+Brier gildið 0.13 er mjög slappt miðað við þetta.
+
+\newpage
+
+## Ranef
+
+Til þess að sýna hversu mikil áhrif slemiþátturinn nemandi hafði var sett upp ranef mynd sem sýnir ólíka skurðpunkta nemenda við y ásinn í líkaninu. Mælingar fyrir línulegt líkan eiga að vera áháðar sem svörin í gagnasettinu væru ef hver nemandi svaraði aðeins einu sinni en nemendur hafa ólíkan fjölda svara og eru svör hvers nemenda innbyrðis háð því þarf að setja nemenda upp sem slembiþátt og teikna upp mynd sem skýrir hver dreifni skurðpunkta við y-ás er.
+
+```{r, echo=FALSE, fig.align='center', fig.cap="Ranef", fig.pos='H', out.width='100%'}
+include_graphics('img/ranef.png')
+```
+
+Sjáum að langflestir nemendur eru nálægt skurðpunktinum 0. Miðað er við að nemendur séu normaldreifðir og því koma þessar niðurstöður ekki á óvart.
+
+# Bootstrap
+
+Til þess að kanna gæði líkans betur er búið til bootstrap þar sem gögnin voru hermd  til þess að finna bjartsýni fyrir brier gildið og aðgreiningargetu líkansins og svo leiðrétt gildi fyrir bæði fundin með því að draga bjartsýnina frá gildunum sem voru sett fram í \ref{fig:mynd7}. Í greiningunni fólst að bootstrap gildi voru fundin fyrir auc og brier fyrir 80% gagnanna, valin af handahófi, og svo voru gildin einnig fundin fyrir uppsetningu líkansins á 20% gagnanna sem eftir voru. Bjartsýnin var þá mismunur þessara tveggja ólíku gilda. 
+
+Niðurstöðru 100 bootstrap ítranan voru settar fram myndrænt.
+```{r, echo=FALSE, fig.align='center', fig.cap="ROC", fig.pos='H', out.width='100%'}
+include_graphics('img/boot.png')
+```
+Bjartsýni beggja gilda er mjög svipuð en þar sem brier gildið var lágt til að byrja með kemur niðurstaðan mjög illa út fyrir brier.
+Leiðrétt aðgreiningargetu og brier gildi voru svo fundin útfrá upprunalegum gildum að frádreginni bjartsýninni.
+
+
+Niðurstaða bootstrap greiningarinnar var sett fram á sama hátt og mynd \ref{fig:mynd7} 
+
+```{r, echo=FALSE, fig.align='center', fig.cap="ROC", fig.pos='H', out.width='100%'}
+include_graphics('img/ROC_boot.png')
+```
+
+
+AUC gildið er ennþá ásættanlega hátt en brier gildið er mjög lágt. Bendir til þess að líkanið sé allt of viðkvæmt fyrir gögnunum sem unnið var með. 
+
+\newpage
+
+# Power útreikningar
+
+Fyrir power útreikninga þurfti að nota grade breytuna frekar en correct til þess að hafa samfellda breytu. 
+Sett var upp slembiþáttalíkan með cue og studentID sem slembiþætti: $grade = cue + (1 | studentId)$ 
+
+Markmiðið var að finna úrtaksstærð svara sem gefði power uppá 0.8 sem merkir að við getum hafnað núlltilgátunni að cue hafi ekki áhrif í 80% tilvika.
+Notuð var hermun til þess að síendurtekið skapa handahófskennd gögn byggð á líkaninu. Greina svo hvert gagnasett og taka hlutfallið á milli niðurstaðanna sem eru marktækar og ekki. Hlutfallið er þá powerið fyrir líkanið. 
+
+Aðferðin var eftirfarandi.
+
+  1. Stikamöt líkansins geymd.
+
+
+  2. Vigrar n = (500, 100, 1500, . . . , 8000) og p = (0.05, 0.1, 0.15, 0.2), fyrir úrtaksstærð og tíðni cue skilgreindir.
+  
+  
+  3. Fyrir hvert par n × p voru B = 100 ítranir framkvæmdar þar sem:
+  * student vigur af stærð $n_i$ var hermdur.
+  
+  * cue vigur af lengd $n_i$ með stika $p_k$ var hermdur.
+  
+  * leifa vigur af lengd $n_i$ fyrir skekkjuna sem fæst af slembiþættinum student var hermdur.
+  * leifa vigur af lengd $n_i$ fyrir leifar líkansins var hermdur.
+  
+  * grade vigur af lengd $n_i$ var hermdur útfrá stikamötunum þar sem hallatalan var margfölduð við cue vigurinn að viðbættum báðum leifa vigrunum.
+  
+  * Vigrarnir cue, student og grade voru sameinaðir í ramma og tvö slembiþátta líkön smíðuð. Bæði með nemenda sem slembiþátt en annað með cue sem breytu og hitt með fastan 1 í stað cue. 
+  
+  * Líkönin þá  borin saman með anova og ef cue var marktæk breyta þá skilaði ítrunin gildinu 1, annars 0.
+  
+  * Fjöldi marktækra líkana var þá deilt með B = 100 ítrunum og skráð við hvert par af n x p.
+
+
+Greint er frá niðurstöðunum með línuriti þar sem sýnt er power á móti úrtaksstærð eftir tíðni cue og töflu fyrir pörin sem voru næst 0.8
+
+
+```{r mynd9, echo=FALSE, fig.align='center', fig.cap="Power", fig.pos='H', out.width='100%'}
+include_graphics('img/power_ingunn.png')
+```
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+power <- read_csv("data/power80table.csv")
+
+power %>%
+  kable(booktabs = T,
+        'latex',
+       align = c('ccc'),
+       col.names = c('n','p', 'power'),
+       caption = '(\\#tab:strings) Pör af úrtaksstærð n og tíðni cue p sem gefa power um 0.8',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position')
+```
+
+Því hærri tíðni cue sem spurningarnar eru látnar hafa því færri svör þarf til að hafa power um 0.8 Miðað við 20% svara sem cue dugar að hafa 2500 svör.
+
+# Umræða
+
+Brier gildi nálægt núlli fyrir annars gott líkan benti til þess að gögnin sem væru til staðar væru ekki nógu góð. Það væri mjög áhugavert að setja upp tilraun útfrá power útreikningunum og endurtaka rannsóknina.

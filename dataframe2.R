@@ -4,6 +4,7 @@ library(RMySQL)
 library(lubridate)
 library(dbplyr)
 library(RMariaDB)
+library(dplyr)
 
 con<-src_mysql("tw_quizdb",
                host = "127.0.0.1", 
@@ -85,5 +86,21 @@ names(ans) <- c("answerId", "lectureId", "studentId", "questionId", "plonePath",
                 "timeEnd", "practice", "coinsAwarded", "ugQuestionGuid", "lectureVersion", "cue", "qName")
 
 ans$qName <- gsub(ans$qName, pattern=".cue$", replacement="")
+
+ans <- filter(ans, qName != "Qgen-q0199")
+ans <- filter(ans, qName != "question-008")
+
+ans$answerId <- as.factor(ans$answerId)
+ans$lectureId <- as.factor(ans$lectureId)
+ans$studentId <- as.factor(ans$studentId)
+ans$questionId <- as.factor(ans$questionId)
+ans$correct <- as.integer(ans$correct)
+ans$cue <- as.factor(ans$cue)
+
+ans <- dplyr::select(ans, -(ugQuestionGuid))
+ans <- dplyr::select(ans, -(coinsAwarded))
+ans <- dplyr::select(ans, -(practice))
+ans <- dplyr::select(ans, -(lectureVersion))
+ans <- dplyr::select(ans, -(chosenAnswer))
 
 write_csv(x = ans, path = 'data/answers_cue_nocue.csv')

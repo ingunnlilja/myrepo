@@ -11,7 +11,7 @@ cue_nocue %>%
   group_by(lectureId, n) %>%
   group_nest() -> bs_full
 
-B <- 5
+B <- 100
 set.seed(1)
 time <- Sys.time()
 drasl_cue_allt <- data.frame(auc_b = rep(0, B),

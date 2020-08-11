@@ -2,7 +2,9 @@
 title: "cue/nocue"
 author: "Ingunn Lilja Bergsdóttir"
 date: "6/16/2020"
-output: html_document
+output:   
+    html_document: default
+    pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE}
 library(dbplyr)
 library(dplyr)
+library(tinytex)
 library(RMySQL)
 library(tidyr)
 library(MASS)
@@ -20,91 +23,101 @@ library(ggplot2)
 library(rvest)
 library(dplyr)
 library(knitr)
+library(tibble)
 library(tidyverse)
 library(gridExtra)
 library(kableExtra)
 library(xtable)
 library(car)
 library(gtable)
+library(broom)
 library(glmnet)
 library(stats)
+library(pwr)
 library(ROCR)
 library(pROC)
-library(tidyverse)
 library(pROC)
 library(plotROC)
 library(cowplot)
 library(lme4)
 library(ggthemes)
-theme_set(theme_tufte() +
+theme_set(theme_bw() +
             theme(panel.border = element_rect('black', fill = NA),
                   axis.title = element_text(size = 14),
                   text = element_text(size = 14)))
 ```
 
 ```{r}
+#Les inn gagnatöfluna
 cue_nocue <- read.csv("data/answers_cue_nocue.csv")
 ```
 
-Kom í ljós að tvær auka spurningar án samsvörunar sluppu í gegn þeim eytt út:
-
-```{r}
-#Eyða út auka sp.
-cue_nocue <- filter(cue_nocue, qName != "Qgen-q0199")
-cue_nocue <- filter(cue_nocue, qName != "question-008")
-#cue_nocue <- filter(cue_nocue, qName != "q04")
-```
-
-```{r}
-summary(cue_nocue)
-```
-
-```{r}
+```{r, include=FALSE}
 cue_nocue$answerId <- as.factor(cue_nocue$answerId)
 cue_nocue$lectureId <- as.factor(cue_nocue$lectureId)
 cue_nocue$studentId <- as.factor(cue_nocue$studentId)
 cue_nocue$questionId <- as.factor(cue_nocue$questionId)
-cue_nocue$chosenAnswer <- as.factor(cue_nocue$chosenAnswer)
 cue_nocue$correct <- as.integer(cue_nocue$correct)
-cue_nocue$lectureVersion <- as.factor(cue_nocue$lectureVersion)
 cue_nocue$cue <- as.factor(cue_nocue$cue)
 ```
 
+Samantekt fyrir breytur í gagnatöflunni.
 ```{r}
-cue_nocue <- dplyr::select(cue_nocue, -(ugQuestionGuid))
-cue_nocue <- dplyr::select(cue_nocue, -(coinsAwarded))
-cue_nocue <- dplyr::select(cue_nocue, -(practice))
-cue_nocue <- dplyr::select(cue_nocue, -(lectureVersion))
-cue_nocue <- dplyr::select(cue_nocue, -(chosenAnswer))
+summary(cue_nocue)
 ```
 
-#Lýsandi tölfræði
-Grunn lýsandi tölfræði til að sjá hvað við erum að vinna með.
+# Lýsandi tölfræði
 
-Stöplarit fyrir svör með og án cue. Litað inná hlutfall réttra svara.
+Stöplarit og tíðnitafla sem sýnir fjölda réttra og rangra svara eftir cue eða ekki cue spurningu.
+
 ```{r}
-#Samanburður á flokkunum tveim
-ggplot(data = cue_nocue, aes(x=cue, fill=correct=="1")) + geom_bar() + labs(y="Fjöldi", x="cue", fill="Rétt/Rangt")
+ggplot(data = cue_nocue,
+       aes(x=cue,
+           fill=correct=="1")) +
+  geom_bar() +
+  labs(y="Fjöldi",
+       x="cue",
+       fill="Rétt/Rangt",
+       title = "Fjöldi svara fyrir cue eða ekki cue")
 ```
 
-Tafla sem sýnir fjölda svara af hvorri gerð, meðaleinkunn miðað við fjölda réttra svara deilt með fjölda svara.
+Tíðnitafla 
+
+```{r}
+cue_nocue$correct <- with(cue_nocue, ifelse(correct==1, "Rétt", "Rangt"))
+Heild <- sum
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild) %>%
+  kable(col.names = c("Án cue", "Með cue", "Heild"), 
+        align = c('cccc'), 
+        caption = "Tíðnitafla") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+cue_nocue$correct <- with(cue_nocue, ifelse(correct=="Rétt", 1, 0))
+cue_nocue$correct <- as.integer(cue_nocue$correct)
+```
+
+Tafla sem sýnir meðaleinkunn fyrir hvorn flokk þar sem einkunnin byggir á fjölda réttra svara deilt með fjölda svara.
 ```{r}
 cue_nocue %>%
   group_by(cue) %>%
-    summarise(Fjöldi=length(cue), Meðal_einkunn=mean(correct, na.rm = T)*10) %>%
-      kable() %>%
-        kable_styling(bootstrap_options = c("striped", "hover"))
+    summarise(Medal_einkunn=mean(correct, na.rm = T)*10) %>%
+      kable(col.names = c("Cue",
+                          "Meðaleinkunn"), 
+            align = c('cc'),
+            caption = "Meðaleinkunn") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
 #cue = 0 er spurning án vísbendingar og cue = 1 er vísbendingaspurning.
 ```
-Meðaleinkunnin fyrir vísbendingaspurningar eru um 0.5 hærri sem viriðist nokkuð hátt.
+Meðaleinkunn fyrir vísbendingaspurningar er um 0.5 hærri en fyrir aðrir spurningar.
 
-Auka rammi búin til sem eru bara spurningarnar og meðaleiknunnin á þeim eftir cue eða ekki. Gert til að vera með betri grade breytu. Fjöldi réttra svara deilt með fjölda spurninga og nýja grade breytan er þvi meðaltal.
-```{r}
+Auka rammi búin til sem eru bara spurningarnar og meðaleiknunnin á þeim eftir cue eða ekki. Gert til að vera með betri grade breytu. Fjöldi réttra svara deilt með fjölda spurninga og nýja grade breytan er þvi meðaltal. Ramminn skýrður medal.
+
+```{r, include=F}
 cue_nocue %>%
   filter(cue==0) %>%
   dplyr::select(qName, correct, cue)  %>% 
         group_by(qName) %>% 
-        summarise(medal = 10*sum(correct==1)/length(qName)) -> tmp_nocue_medal
+        summarise(medal = 10*sum(correct==1)/length(qName))-> tmp_nocue_medal
 
 cue_nocue %>%
   filter(cue==1) %>%
@@ -123,33 +136,48 @@ rbind.data.frame(tmp_cue_medal, tmp_nocue_medal) -> medal
 
 Mynd sem sýnir meðaltöl fyrir cue og ekki cue fyrir hverja spurningu.
 ```{r}
-ggplot(data=medal, aes(x=qName, y=medal, color=cue, group=cue)) + geom_point() + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + labs(x="Spurning", y="Meðal einkunn", color="Cue", title = "Einkunnir á spurningu" ) 
+ggplot(data=medal,
+       aes(x=qName,
+           y=medal,
+           color=cue,
+           group=cue)) + 
+  geom_point() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
+  labs(x="Spurning", y="Meðaleinkunn", color="Cue", title = "Einkunnir á spurningu" ) 
 ```
 
 Skoða q04 spurninguna betur þar sem meðaleinkunnin 0 er undarleg.
 ```{r}
 cue_nocue %>% 
-  filter(qName == "q04")
-#14 aðilar hafa svarað spurningunni
+  filter(qName == "q04") %>% nrow()
 ```
-14 svör til við þessari spurningu þar sem cue er aldrei rétt í 4 tilvikum. Skoða hinar spurningarnar í samanburði.
+13 svör til við þessari spurningu þar sem cue er aldrei rétt í 4 tilvikum. Skoða hvort það sé í lagi að eyða henni og öðrum spurningum með minna en 20 svör skráð út.
+
 
 ```{r}
 cue_nocue %>% 
-  group_by(qName) %>% 
-  summarise(Fjöldi = length(qName), Meðal_einkunn = mean(correct, na.rm = T)*10) %>% 
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
+  ggplot(aes(x= qName)) + 
+  geom_bar() + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
+  labs(x="Spurning", y="Fjöldi", title = "Fjöldi svara á hverja spurningu")
+  
 ```
-Skoða það hvort taka megi út spurningarnar með svörum undir 20.
-
+Sjáum að q04 hefur mjög fá svör samanborið við aðrar spurningar.
 
 Svipuð mynd miðuð við að sýna gengi á hverri spurningu.
 ```{r}
-ggplot(data=medal, mapping = aes(x=cue, y=medal, color=qName)) +
- geom_point() + theme_bw() +
- labs(x="cue", y="Meðal einkunn", color="Spurning", title = "Einkunn á cue eftir spurningu")
+ggplot(data=medal,
+       mapping = aes(x=cue,
+                     y=medal,
+                     color=qName)) + 
+  geom_point() +
+  theme_bw() + 
+  labs(x="cue",
+       y="Meðaleinkunn",
+       color="Spurning",
+       title = "Einkunn á cue eftir spurningu")
 ```
+Cue virðist ganga betur.
 
 Kassarit til að sýna meðaltölin og miðgildi á milli hópa.
 ```{r}
@@ -159,8 +187,22 @@ f <- medal %>%
           medal = mean(medal)
         )
 medal$cue <- as.factor(medal$cue)
-ggplot(data=medal, aes(x=cue, y=medal, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn") + ggtitle("Einkunn með/án vísbendinga") + geom_point(data=f, aes(x=cue, y=medal), col="red", size=2)
+ggplot(data=medal,
+       aes(x=cue,
+           y=medal,
+           color=cue)) +
+  geom_boxplot(outlier.colour = "blue",
+               outlier.shape = 1) +
+  xlab("cue") +
+  ylab("Einkunn") +
+  ggtitle("Einkunn með/án vísbendinga") +
+  geom_point(data=f,
+             aes(x=cue,
+                 y=medal),
+             col="red",
+             size=2)
 ```
+
 Örlítið hærra miðgildi fyrir cue - munar ekki miklu. Fjórðungamörkin eru þó hærri
 
 Vil skoða hvort það skipti meira máli fyrir fólk með lægri eða hærri einkunnir að fá cue sp.
@@ -170,122 +212,235 @@ cue_yfir_fimm <- filter(cue_nocue, grade>=5)
 
 cue_undir_fimm %>%
   filter(cue==0) %>%
-  dplyr::select(qName, correct, cue)  %>% 
+  dplyr::select(qName,
+                correct,
+                cue)  %>% 
         group_by(qName) %>% 
-        summarise(medal = 10*sum(correct==1)/length(qName)) -> tmp_nocue_medal_undir
+        summarise(medal = 
+                    10*sum(correct==1)/length(qName)) ->
+  tmp_nocue_medal_undir
 
 cue_undir_fimm %>%
   filter(cue==1) %>%
-  dplyr::select(qName, correct, cue) %>% 
+  dplyr::select(qName,
+                correct,
+                cue) %>% 
         group_by(qName) %>% 
-        summarise(medal = 10*sum(correct==1)/length(qName)) -> tmp_cue_medal_undir
+        summarise(medal =
+                    10*sum(correct==1)/length(qName)) ->
+  tmp_cue_medal_undir
 
 #Tapaði út cue en þarf að fá það aftur inn svona
 
 tmp_cue_medal_undir$cue <- "1"
 tmp_nocue_medal_undir$cue <- "0"
 
-rbind.data.frame(tmp_cue_medal_undir, tmp_nocue_medal_undir) -> medal_undir
+rbind.data.frame(tmp_cue_medal_undir,
+                 tmp_nocue_medal_undir) ->
+  medal_undir
 
 a <- medal_undir %>% 
         group_by(cue) %>% 
         summarise(
           medal = mean(medal)
         )
-medal_undir$cue <- as.factor(medal_undir$cue)
-ufimm <- ggplot(data=medal_undir, aes(x=cue, y=medal, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn") + ggtitle("Einkunn með/án vísbendinga nemendur undir 5") + geom_point(data=a, aes(x=cue, y=medal), col="red", size=2)
+medal_undir$cue <- 
+  as.factor(medal_undir$cue)
+
+ufimm <-
+  ggplot(data=medal_undir,
+         aes(x=cue,
+             y=medal,
+             color=cue)) +
+  geom_boxplot(outlier.colour = "blue",
+               outlier.shape = 1) +
+  xlab("cue") +
+  ylab("Einkunn") +
+  ggtitle("Einkunn með/án vísbendinga nemendur undir 5") +
+  geom_point(data=a,
+             aes(x=cue,
+                 y=medal),
+             col="red",
+             size=2)
 
 cue_yfir_fimm %>%
   filter(cue==0) %>%
-  dplyr::select(qName, correct, cue)  %>% 
+  dplyr::select(qName,
+                correct,
+                cue)  %>% 
         group_by(qName) %>% 
-        summarise(medal = 10*sum(correct==1)/length(qName)) -> tmp_nocue_medal_yfir
+        summarise(medal =
+                    10*sum(correct==1)/length(qName)) ->
+  tmp_nocue_medal_yfir
 
 cue_yfir_fimm %>%
   filter(cue==1) %>%
-  dplyr::select(qName, correct, cue) %>% 
+  dplyr::select(qName,
+                correct,
+                cue) %>% 
         group_by(qName) %>% 
-        summarise(medal = 10*sum(correct==1)/length(qName)) -> tmp_cue_medal_yfir
-
-#Tapaði út cue en þarf að fá það aftur inn svona:
+        summarise(medal = 
+                    10*sum(correct==1)/length(qName)) ->
+  tmp_cue_medal_yfir
 
 tmp_cue_medal_yfir$cue <- "1"
 tmp_nocue_medal_yfir$cue <- "0"
 
-rbind.data.frame(tmp_cue_medal_yfir, tmp_nocue_medal_yfir) -> medal_yfir
-# left_join(tmp_cue_medal, tmp_nocue_medal) -> medal
+rbind.data.frame(tmp_cue_medal_yfir,
+                 tmp_nocue_medal_yfir) -> 
+  medal_yfir
 
 b <- medal_yfir %>% 
         group_by(cue) %>% 
         summarise(
           medal = mean(medal)
         )
-medal_yfir$cue <- as.factor(medal_yfir$cue)
-yfimm <- ggplot(data=medal_yfir, aes(x=cue, y=medal, color=cue)) + geom_boxplot(outlier.colour = "blue", outlier.shape = 1) + xlab("cue") + ylab("Einkunn cu2") + ggtitle("Einkunn með/án vísbendinga, nemendur yfir 5") + geom_point(data=b, aes(x=cue, y=medal), col="red", size=2)
+
+medal_yfir$cue <-
+  as.factor(medal_yfir$cue)
+
+yfimm <-
+  ggplot(data=medal_yfir,
+         aes(x=cue,
+             y=medal,
+             color=cue)) +
+  geom_boxplot(outlier.colour = "blue",
+               outlier.shape = 1) +
+  xlab("cue") +
+  ylab("Einkunn cu2") +
+  ggtitle("Einkunn með/án vísbendinga, nemendur yfir 5") +
+  geom_point(data=b,
+             aes(x=cue,
+                 y=medal),
+             col="red",
+             size=2)
 
 grid.arrange(ufimm, yfimm)
 ```
 Miklu meiri munur á cue og ekki cue fyrir nemendur með einkunn, eftir spurningu, lægri en 5. 
 
-# Töflur sem sýna fjórðungamörk einkunna fyrir svör með og án cue.
+
+## Töflur sem sýna fjórðungamörk einkunna fyrir svör með og án cue.
+
 
 Cue svör:
 ```{r}
-med_cue <-filter(medal, cue==1)
-kable(quantile(med_cue$medal, na.rm = T))
+med_cue <-
+  filter(medal, cue==1)
+
+med_cue$medal %>%
+  quantile() %>%
+  kable(col.names = c( "Meðaleinkunn"),
+        align = c('cc'),
+        caption = "Fjórðungamörk fyrir cue spurningar") %>% 
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 
 Svör án cue:
-```{r}
-an_cue <-filter(medal, cue==0)
-kable(quantile(an_cue$medal, na.rm = T))
-```
-Cue kemur betur út.
 
-Hutfalla tafla
 ```{r}
-table(correct=cue_nocue$correct, cue=cue_nocue$cue)
-prop.table(table(correct=cue_nocue$correct, cue=cue_nocue$cue),2)
-```
-Tafla sem gefur tíðni hvers þáttar og svo hlutföllin í neðri töflunni.
+an_cue <- 
+  filter(medal, 
+         cue==0)
 
-Hér viljum við sjá hvort hlutföllin á milli séu þau sömu. rétt/rangt fyrir vísb og svo án.
+an_cue$medal %>%
+  quantile() %>%
+  kable(col.names = c( "Meðaleinkunn"),
+        align = c('cc'),
+        caption = "Fjórðungamörk fyrir án cue spurningar") %>% 
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
+```
+
+Cue kemur betur út en munar mjög litlu.
+
+
+Hutfalla tafla.
+
 ```{r}
-prop.test(table(cue_nocue$correct, cue_nocue$cue))
+cue_nocue$correct <-
+  with(cue_nocue,
+       ifelse(correct==1,
+              "Rétt",
+              "Rangt"))
+
+kable(prop.table(table(cue_nocue$correct, 
+                       cue_nocue$cue),
+                 2),
+      col.names = c( "Án cue",
+                     "Með cue"),
+      align = c('rr'),
+      caption = "Hlutföll",
+      digits = 3)
+  
+cue_nocue$correct <-
+  with(cue_nocue,
+       ifelse(correct=="Rétt",
+              1,
+              0))
+cue_nocue$correct <-
+  as.integer(cue_nocue$correct)
+```
+Hlutfallslega fleiri rétt svör í cue flokknum.
+
+Kannað hvort það sé rétt að það séu hlutfallslega fleiri rétt svör í cue hópnum með prop.test.
+
+```{r}
+# Hér gæti farið inn scientific gildi
+prop.test(table(cue_nocue$correct,
+                cue_nocue$cue)) %>%
+  broom::tidy() %>% 
+  kable(digits = 4) %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
+
+prop.test(table(cue_nocue$correct,
+                cue_nocue$cue)) %>%
+  broom::tidy() -> hlutfallaprof
+write_csv(x=hlutfallaprof, path = "tables/hlutfallaprof.csv")
 ```
 Samkvæmt þessu er marktækur munur á hlutföllunum. Semsagt hlutfallslega betra gengi á cue spurningum.
-
-```{r}
-pairs(medal~cue+qName, data=medal)
-```
 
 
 # Líkanagerð
 
-Línulegt aðhvarfsgreiningar líkan fyrir medal breytuna.
-```{r}
-fit.lm <- lm(medal ~ cue, data = medal)
-Anova(fit.lm, type = "III")
-```
-Ekki marktækur munur á meðaltölunum hér miðað við medal gagnatöfluna. Teikna upp niðurstöðuna.
+
+Línulegt aðhvarfsgreiningar líkan fyrir medal töfluna. Breytur eru meðaleinkunn á spurningu og cue.
 
 ```{r}
-par(mar=c(3.5,3.5,1,1), mgp=c(2,0.8,0))
-plot(medal$cue, medal$medal, pch=20, col="blue")
-abline(fit.lm)
+fit.lm <- 
+  lm(medal ~ cue,
+     data = medal)
+
+Anova(fit.lm,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
-Mjög ljót mynd en þó það virðist vera munur er hann ekki marktækur hér.
+Ekki marktækur munur á meðaltölunum eftir cue eða ekki cue.
+
 
 # Líkan 1
 
 Tvíkosta aðhvarfsgreiningar líkan fyrir cue_nocue gagnaramman. Glm þar sem correct er tvíkosta breyta.
 ```{r}
-glm1 <- glm(correct ~ cue, family = "binomial", data=cue_nocue)
+glm1 <- glm(correct ~ cue,
+            family = "binomial",
+            data=cue_nocue)
 ```
 
 Anova tafla fyrir marktækni.
 ```{r}
-Anova(glm1, type="III")
+# Vantar töflugerð
+Anova(glm1,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 Marktækur munur á meðaltölum fyrir cue. Kemur á óvart. 
 
@@ -296,44 +451,78 @@ Calibration (kvörðun)
 #hvernig gekkk okkur að spá til um þetta? y ásinn eru gildin á tutor-web og x ásinn eru gildin sem glm spáir
 #sett inn geom smooth til að ná að mynda línu.
 tibble(y = cue_nocue$correct,
-       pred = predict(glm1, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glm1,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun")
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun")
 ```
-Segir lítið sem ekkert.
+Ekkert að marka þetta.
 
 
 ROC kúrfa með AUC og Brier gildum
 ```{r}
-phats <- fitted(glm1)
-auc(cue_nocue$correct, phats) -> auc
+phats <- 
+  fitted(glm1)
+auc(cue_nocue$correct,
+    phats) -> 
+  auc
 
-b <- mean((cue_nocue$correct - predict(glm1, type = 'response'))^2)
-bm <- mean(predict(glm1, type = 'response'))* (1-mean(predict(glm1, type = 'response')))
-bs <- 1- b/bm
+b <-
+  mean((cue_nocue$correct - predict(glm1, 
+                                    type = 'response'))^2)
+bm <-
+  mean(predict(glm1,
+               type = 'response'))*(1-mean(predict(glm1,
+                                                   type = 'response')))
+bs <-
+  1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- 
+  prediction(phats,
+             cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, col="navyblue", cex.main=1, main= paste("ROC kúrfa:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='darkorange1')
+perf <- 
+  performance(pred, 
+              "tpr", 
+              "fpr")
+plot(perf,
+     col="navyblue",
+     cex.main=1,
+     main= paste("ROC kúrfa:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+abline(a=0,
+       b = 1,
+       col = 'darkorange1')
 ```
-ROC kúrfa sem lítur ekki vel út og og AUC sem er mjög nálægt 0.5. Fullkomin AUC og Brier gildi eru nálægt 1.
+ROC kúrfa sem lítur ekki vel út og og AUC sem er mjög nálægt 0.5 og þá þvi að vera alveg ómarktækt. Fullkomin AUC og Brier gildi eru nálægt 1.
 
 
 ```{r}
 #ROC kúrfa í höndunum
 y <- cue_nocue$correct
 #Spá
-phats <- predict(glm1, type = 'response')
+phats <- predict(glm1,
+                 type = 'response')
 #Þröskuldur
-pcuts <- seq(0, 1, by = 0.01)
+pcuts <- seq(0,
+             1,
+             by = 0.01)
 
 # nullstillum gagnasett 
-df <- data.frame(fpr = rep(0, length(pcuts)),
-                 tpr = rep(0, length(pcuts)))
+df <- data.frame(fpr = rep(0,
+                           length(pcuts)), 
+                 tpr = rep(0,
+                           length(pcuts)))
 
 p <- sum(y)
 n <- length(y) - p
@@ -358,33 +547,51 @@ for (i in 1:length(pcuts)) {
 
 # Bætum inn model predictions til að nota pakka til ad teikna roc kúrfu
 cue_nocue %>%
-  modelr::add_predictions(glm1, type = 'response') -> plot_roc
+  modelr::add_predictions(glm1,
+                          type = 'response') -> plot_roc
 
 # Teiknuð ROC kúrfa
 
-ggplot(plot_roc, aes(m = pred, d = correct)) + 
+ggplot(plot_roc,
+       aes(m = pred,
+           d = correct)) + 
   geom_roc(labels = F) + 
-  geom_abline(intercept = 0, slope = 1, lty = 2) -> p1
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) -> p1
 
 # roc i hondum
 
 df %>%
   as_tibble() %>%
-  ggplot(aes(x = fpr, y = tpr)) +
+  ggplot(aes(x = fpr,
+             y = tpr)) +
   geom_line() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) -> p2
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) -> p2
 
 plot_grid(p1, p2)
 ```
 
 # Líkan 2
 
+Hafa cue og qName áhrif á correct breytuna ?
+
 ```{r}
-glm2 <- glm(correct ~ cue + qName, family = "binomial", data=cue_nocue)
+glm2 <- glm(correct ~ cue + qName,
+            family = "binomial",
+            data=cue_nocue)
 ```
 
 ```{r}
-Anova(glm2, type="III")
+# Vantar fallega töflu
+Anova(glm2,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 Marktækt fyrir bæði cue og qName miðað við p-gildin.
 
@@ -392,79 +599,134 @@ Marktækt fyrir bæði cue og qName miðað við p-gildin.
 
 Calibration (kvörðun)
 ```{r}
-#hvernig gekkk okkur að spá til um þetta? y ásinn eru gildin á tutor-web og x ásinn eru gildin sem glm spáir
+#hvernig gekkk okkur að spá til um þetta? 
+#y ásinn eru gildin á tutor-web og x ásinn eru gildin sem glm spáir
 #sett inn geom smooth til að ná að mynda línu.
+
 tibble(y = cue_nocue$correct,
-       pred = predict(glm2, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glm2,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun") +
+  coord_cartesian(xlim = c(0,1),
+                  ylim = c(0,1))
 ```
-Nokkuð gott. Hái skurðpunkturinn bendir til þess að spáin sé að staðaldri of há.
+Nokkuð gott.
 
 ROC kúrfa með AUC og brier skori.
 ```{r}
 phats <- fitted(glm2)
 
-auc(cue_nocue$correct, phats) -> auc
+auc(cue_nocue$correct,
+    phats) -> auc
 
-b <- mean((cue_nocue$correct - predict(glm2, type = 'response'))^2)
-bm <- mean(predict(glm2, type = 'response'))* (1-mean(predict(glm2, type = 'response')))
+b <- mean((cue_nocue$correct - 
+             predict(glm2,
+                     type = 'response'))^2)
+bm <- mean(predict(glm2,
+                   type = 'response'))*(1-mean(predict(glm2,
+                                                       type = 'response')))
 bs <- 1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- prediction(phats,
+                   cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, colorize=T, cex.main=1, main= paste("ROC kúrfa:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='blue')
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC kúrfa:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+abline(a=0,
+       b = 1,
+       col='blue')
 ```
-ROC kúrfa sem lítur ekki vel út en miklu betri en í glm1. AUC gildið er komið uppí 0.6369 sem er nokkuð gott en brier gildið er mjög lágt.
+ROC kúrfa sem lítur ekki vel út en miklu betri en í glm1. AUC gildið er komið uppí 0.6369 sem er ekki galið en brier gildið er mjög lágt.
 
-# Líkön 3
+# Líkan 3
+
+Breytur eru cue, qName og interaction þar á milli.
 
 ```{r}
-glm3 <- glm(correct ~ cue + qName + cue:qName, family = "binomial", data=cue_nocue)
+glm3 <- glm(correct ~ cue + qName + cue:qName,
+            family = "binomial",
+            data=cue_nocue)
 ```
 
 ```{r}
-Anova(glm3, type="III") %>%
-  broom::tidy()
+Anova(glm3,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 cue hefur ekki marktæk áhrif en qName og interaction breytan hafa marktæk áhrif.
 
 Calibration (kvörðun)
 ```{r}
-#hvernig gekkk okkur að spá til um þetta? y ásinn eru gildin á tutor-web og x ásinn eru gildin sem glm spáir
-#sett inn geom smooth til að ná að mynda línu.
 tibble(y = cue_nocue$correct,
-       pred = predict(glm3, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glm3,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun") +
+  coord_cartesian(xlim = c(0, 1),
+                  ylim = c(0, 1))
 ```
-Best hingað til, örlítið of hár skurðpunktur.
-
+Best hingað til. Lítur mjög vel út
 
 ```{r}
 phats <- fitted(glm3)
 
-auc(cue_nocue$correct, phats) -> auc
+auc(cue_nocue$correct,
+    phats) -> auc
 
-b <- mean((cue_nocue$correct - predict(glm3, type = 'response'))^2)
-bm <- mean(predict(glm3, type = 'response'))* (1-mean(predict(glm3, type = 'response')))
+b <- mean((cue_nocue$correct - predict(glm3,
+                                       type = 'response'))^2)
+bm <- mean(predict(glm3,
+                   type = 'response'))* (1-mean(predict(glm3,
+                                                        type = 'response')))
 bs <- 1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- prediction(phats,
+                   cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, colorize=T, cex.main=1, main= paste("ROC kúrfa:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='blue')
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC kúrfa:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+abline(a=0,
+       b = 1,
+       col='blue')
 ```
-Örlítil bæting á bæði AUC og brier frá líkani 2.
+Örlítil bæting á bæði AUC og brier frá líkani 2. Brier gildið er ennþá allt of lágt.
 
 ## Mixed effect líkön
 
@@ -472,70 +734,99 @@ Hvert svar í gagnarammanum er tilgreint nemanda. Nemendur hafa svarað mis oft 
 ```{r}
 cue_nocue %>%
   group_by(studentId) %>%
-  summarise(fjoldi =length(studentId)) -> ab
+  summarise(fjoldi = length(studentId)) -> ab
 max(ab$fjoldi)
 
 ab %>%
-  filter(fjoldi =="1") %>% nrow()
+  filter(fjoldi =="1") %>%
+  nrow()
 
 ab$fjoldi <- as.integer(ab$fjoldi)
 
 ab %>% 
-  filter(fjoldi >= 100) %>% nrow()
+  filter(fjoldi >= 100) %>%
+   nrow()
 ```
 Mest eru 236 svör tengd við einn nemanda, 748 nemendur hafa aðeins eitt svar skráð og 6 nemendur hafa svarað jafn oft eða meira en 100 sinnum. Miðað við það eru til dæmis amk 600 svör af 28636 svörum í heildina frá sömu 6 nemendunum. Mælingar eiga að vera óháðar fyrir línulega aðhvarfsgreiningu sem þær eru ef hver nemandi hefur eitt svar en 100 svör frá sama nemandanum eru innbyrðis háð og því þarf að setja upp mixed effect líkan til að leiðrétta fyrir þetta.
 
-# Mixed effect líkan 11
+# Mixed effect líkan 1
+
+## vil ég hafa type 3 þegar ég er ekki með víxlhrif.
 
 ```{r}
 glmer1 <- glmer(correct ~ cue + (1|studentId), 
               family = "binomial", 
               data=cue_nocue,
               nAGQ = 0)
-# failure to converge in 10000 evaluations fyrir nAGQ = 1. Kom eftir klukkutíma. Stoppaði keyrslu.
+# failure to converge in 10000 evaluations fyrir nAGQ = 1.
+# Kom eftir klukkutíma. Stoppaði keyrslu.
 ```
 
 ```{r}
-Anova(glmer1, type="III")
+# vantar anova
+Anova(glmer1,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 Marktækt fyrir cue með mixed effect.
 
 # Gæði mixed effeect líkans 1
 
-```{r}
-ranef(glmer1) %>%
-  as_tibble() %>%
-  ggplot(aes(x = condval)) +
-  geom_density()
-```
-
 Kvörðun
 ```{r}
 tibble(y = cue_nocue$correct,
-       pred = predict(glmer1, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glmer1,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun") +
+  coord_cartesian(xlim = c(0, 1),
+                  ylim = c(0, 1))
 ```
-Spáin er of lág þar til í 0.75 þar sem spáin verður of há.
+Spáin er of lág þar til í 0.75 þar sem spáin verður of há. 
+# Skoða samræmi á milli.
 
 ROC kúrfa, AUC og brier gildi.
 ```{r}
 phats <- fitted(glmer1)
 
-auc(cue_nocue$correct, phats) -> auc
+auc(cue_nocue$correct,
+    phats) -> auc
 
-b <- mean((cue_nocue$correct - predict(glmer1, type = 'response'))^2)
-bm <- mean(predict(glmer1, type = 'response'))* (1-mean(predict(glmer1, type = 'response')))
+b <- mean((cue_nocue$correct - predict(glmer1,
+                                       type = 'response'))^2)
+bm <- mean(predict(glmer1,
+                   type = 'response'))* (1-mean(predict(glmer1,
+                                                        type = 'response')))
 bs <- 1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- prediction(phats,
+                   cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, colorize=T, cex.main=1, main= paste("ROC kúrfa:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='blue')
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC kúrfa:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+
+abline(a=0,
+       b = 1,
+       col='blue')
 ```
 Mjög gott miðað við hingað til! Brier gildið reyndar arfa slakt ennþá.
 
@@ -549,22 +840,34 @@ Mjög gott miðað við hingað til! Brier gildið reyndar arfa slakt ennþá.
 ```
 
 ```{r}
-Anova(glmer2, type="III") %>%
-  broom::tidy()
+Anova(glmer2,
+      type = "III") %>% 
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 Marktækt fyrir cue og qName.
 
-# Gæði mixed effect líkans 2 
+## Gæði mixed effect líkans 2 
 
 Kvörðun
 ```{r}
 tibble(y = cue_nocue$correct,
-       pred = predict(glmer2, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glmer2,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun") +
+  coord_cartesian(xlim = c(0, 1),
+                  ylim = c(0, 1))
 ```
 Betra en í líkani 1 spá of há fram að 0.7 þegar hún verður of há. Munar ekki miklu.
 
@@ -572,17 +875,32 @@ ROC kúrfa, AUC og brier.
 ```{r}
 phats <- fitted(glmer2)
 
-auc(cue_nocue$correct, phats) -> auc
+auc(cue_nocue$correct,
+    phats) -> auc
 
-b <- mean((cue_nocue$correct - predict(glmer2, type = 'response'))^2)
-bm <- mean(predict(glmer2, type = 'response'))* (1-mean(predict(glmer2, type = 'response')))
+b <- mean((cue_nocue$correct - predict(glmer2,
+                                       type = 'response'))^2)
+bm <- mean(predict(glmer2,
+                   type = 'response'))*(1-mean(predict(glmer2,
+                                                       type = 'response')))
 bs <- 1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- prediction(phats,
+                   cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, colorize=T, cex.main=1, main= paste("ROC kúrfa:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='blue')
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC kúrfa:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+abline(a=0,
+       b = 1,
+       col='blue')
 ```
 AUC komið uppí 0.7357 og brier í 0.12313 sem er það lang besta hingað til.
 
@@ -595,291 +913,283 @@ AUC komið uppí 0.7357 og brier í 0.12313 sem er það lang besta hingað til.
               nAGQ = 0)
 ```
 
+Anova tafla.
 ```{r}
-Anova(glmer3, type = "III")
+# setja inn scientific
+Anova(glmer3,
+      type = "III") %>%
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
 ```
 Marktækt fyrir qName og interaction á milli cue og qName.
 
-# Gæði mixed effect líkans 3
+## Gæði mixed effect líkans 3
 
 Kvörðun
 ```{r}
 tibble(y = cue_nocue$correct,
-       pred = predict(glmer3, type = 'response')) %>%
-  ggplot(aes(x = pred, y = y)) +
+       pred = predict(glmer3,
+                      type = 'response')) %>%
+  ggplot(aes(x = pred,
+             y = y)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_smooth() + xlab("spá gildi") + ylab("raun gildi") + ggtitle("Kvörðun mixed effect líkan 3") +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1))
+  geom_abline(intercept = 0,
+              slope = 1,
+              lty = 2) +
+  geom_smooth() +
+  xlab("spá gildi") +
+  ylab("raun gildi") +
+  ggtitle("Kvörðun mixed effect líkan 3") +
+  coord_cartesian(xlim = c(0, 1),
+                  ylim = c(0, 1))
 ```
-Svipuð og áður.
+Spáir of lágt fyrir mest allt en engu að síður nokkuð gott og best hingað til.
 
 ROC kúrfa, AUC og brier gildi.
 ```{r}
 phats <- fitted(glmer3)
 
-auc(cue_nocue$correct, phats) -> auc
+auc(cue_nocue$correct,
+    phats) -> auc
 
-b <- mean((cue_nocue$correct - predict(glmer3, type = 'response'))^2)
-bm <- mean(predict(glmer3, type = 'response'))* (1-mean(predict(glmer3, type = 'response')))
+b <- mean((cue_nocue$correct - predict(glmer3,
+                                       type = 'response'))^2)
+bm <- mean(predict(glmer3,
+                   type = 'response'))*(1-mean(predict(glmer3,
+                                                       type = 'response')))
 bs <- 1- b/bm
 
-pred <- prediction(phats, cue_nocue$correct)
+pred <- prediction(phats,
+                   cue_nocue$correct)
 
-perf <- performance(pred,"tpr","fpr")
-plot(perf, colorize=T, cex.main=1, main= paste("ROC mixed effect líkan 3:  AUC =", round(auc,4), " Brier =", round(bs,5)))
-abline(a=0, b = 1, col='blue')
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC mixed effect líkan 3:  AUC =",
+                 round(auc,4),
+                 " Brier =",
+                 round(bs,5)))
+abline(a=0,
+       b = 1,
+       col='blue')
 ```
-Örlítil bæting frá áður í AUC og brier.
-
-## Bootstrap
-
-# Bootstrap 1 með cue, qName og interaction - ÁN brier
-```{r}
-# Skráin auc_boot_hundrad er innlestur niðurstaða úr 100 ítrunum af bootstrap
-# Mixed effect líkan 3 var notað í bootstrap
-auc_boot_hundrad <- read.csv("drasl.csv")
-```
-Taflan gefur okkur auc bjartsýni fyrir hverja ítrun þar sem bjartsýnin er mismunurinn á bootstrap gagna auc og auc fyrir allan gagnaramman. Meðaltal bjartsýnis dálksins gefur okkur hversu mikið við þurfum að leiðrétta auc gildið sem við fengum frá módelinu.
-
-Líkanið:
-```{r}
-fit.ful <- glmer(correct ~ cue + qName + cue:qName + (1|studentId), 
-                 data = cue_nocue,
-                 nAGQ = 0, 
-                 control = glmerControl(optimizer = 'nloptwrap'),
-                 family = 'binomial')
-```
-
-AUC gildi líkansins:
-```{r}
-auc_likan <- auc(roc(cue_nocue$correct, predict(glmer3, type = 'response'), quiet = T))[[1]] 
-auc_likan
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-auc_medal_opt <- mean(auc_boot_hundrad$auc_opt)
-auc_medal_opt
-```
-
-Leiðrétt AUC er þá:
-```{r}
-auc_likan-auc_medal_opt
-```
-
-Leiðrétt AUC er 0.6654 miðað við 3 bootstrap ítranir og 0.6616 miðað við 100 ítranir.
-
-Time difference of 6.001918 hours
-[1] 0.6618376
+Mjög gott AUC gildi og langbesta brier gildi sem komið hefur upp hingað til.
 
 
-# Bootstrap 2 - líkan bara með cue.
+Dreifni skurðpunkta við y-ás fyrir hvern nemanda í slembiþáttalíkaninu. Sýnir slembiþátt. 
 
+slembiþáttalíkan Til þess að taka tillit til hæðni á milli nemenda.
+
+brier sýnir samræmi á milli spá og raun eins og kvörðun.
+
+A generic function to extract the conditional modes of the random effects from a fitted model object. For linear mixed models the conditional modes of the random effects are also the conditional means.
 
 ```{r}
-# Mixed effect líkan 1 með 10 ítrunum.
-boot_10_cue <- read.csv("drasl_cue.csv")
-# neikvætt gildi á afgangs bootstrapinu. Ekkert að marka opt þá.þ
-```
-
-```{r}
-fit.ful <- glmer(correct ~ cue + (1|studentId), 
-                 data = cue_nocue,
-                 nAGQ = 0, 
-                 control = glmerControl(optimizer = 'nloptwrap'),
-                 family = 'binomial')
-```
-
-brier gildið:
-```{r}
-b <- mean((cue_nocue$correct - predict(fit.ful, type = 'response'))^2)
-bm <- mean(predict(fit.ful, type = 'response'))* (1-mean(predict(fit.ful, type = 'response')))
-bs <- 1- b/bm
-bs
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-brier_medal_opt <- mean(boot_10_cue$brier_opt)
-brier_medal_opt
-```
-
-Sem gefur að leiðrétt brier gildi er:
-```{r}
-bs-brier_medal_opt
-```
-Neikvætt brier gildi. Líkanið ekki marktækt.
-
-AUC gildi líkansins:
-```{r}
-auc_likan <- auc(roc(cue_nocue$correct, predict(fit.ful, type = 'response'), quiet = T))[[1]] 
-auc_likan
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-auc_medal_opt <- mean(boot_10_cue$auc_opt)
-auc_medal_opt
-```
-
-Leiðrétt AUC er þá:
-```{r}
-auc_likan-auc_medal_opt
-```
-
-
-# Bootstrap 3 - Cue og qName
-
-
-```{r}
-# Mixed effect líkan 2 með 5 ítrunum.
-boot_5_cue_qName <- read.csv("drasl_cue.csv")
-# neikvætt gildi á afgangs bootstrapinu. Ekkert að marka opt þá.þ
-```
-
-```{r}
-fit.ful <- glmer(correct ~ cue + qName + (1|studentId), 
-                 data = cue_nocue,
-                 nAGQ = 0, 
-                 control = glmerControl(optimizer = 'nloptwrap'),
-                 family = 'binomial')
-```
-
-brier gildið:
-```{r}
-b <- mean((cue_nocue$correct - predict(fit.ful, type = 'response'))^2)
-bm <- mean(predict(fit.ful, type = 'response'))* (1-mean(predict(fit.ful, type = 'response')))
-bs <- 1- b/bm
-bs
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-brier_medal_opt <- mean(boot_5_cue_qName$brier_opt)
-brier_medal_opt
-```
-
-Sem gefur að leiðrétt brier gildi er:
-```{r}
-bs-brier_medal_opt
-```
-Neikvætt brier gildi. Líkanið ekki marktækt.
-
-AUC gildi líkansins:
-```{r}
-auc_likan <- auc(roc(cue_nocue$correct, predict(fit.ful, type = 'response'), quiet = T))[[1]] 
-auc_likan
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-auc_medal_opt <- mean(boot_5_cue_qName$auc_opt)
-auc_medal_opt
-```
-
-Leiðrétt AUC er þá:
-```{r}
-auc_likan-auc_medal_opt
-```
-
-
-# Bootstrap 4 - Cue, qName og interaction - MEÐ brier
-
-
-```{r}
-# Mixed effect líkan 2 með 5 ítrunum.
-boot_5_cue_qName <- read.csv("drasl_cue.csv")
-# neikvætt gildi á afgangs bootstrapinu. Ekkert að marka opt þá.þ
-```
-
-```{r}
-fit.ful <- glmer(correct ~ cue + qName + (1|studentId), 
-                 data = cue_nocue,
-                 nAGQ = 0, 
-                 control = glmerControl(optimizer = 'nloptwrap'),
-                 family = 'binomial')
-```
-
-brier gildið:
-```{r}
-b <- mean((cue_nocue$correct - predict(fit.ful, type = 'response'))^2)
-bm <- mean(predict(fit.ful, type = 'response'))* (1-mean(predict(fit.ful, type = 'response')))
-bs <- 1- b/bm
-bs
-```
-
-Meðaltal bootstrap bjartsýninnar:
-```{r}
-brier_medal_opt <- mean(boot_5_cue_qName$brier_opt)
-brier_medal_opt
-```
-
-Sem gefur að leiðrétt brier gildi er:
-```{r}
-bs-brier_medal_opt
-```
-Neikvætt brier gildi. Líkanið ekki marktækt.
-
-
-
-### Fikt með þorarnid
-
-```{r}
-library(knitr)
-library(kableExtra)
-read_csv('data/fit_full_anova.csv') %>%
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover"))
-```
-
-```{r}
-ranef(fit.ful) %>%
+ranef(glmer3) %>%
   as_tibble() -> ranef_fitful
 ranef_fitful %>%
   ggplot(aes(x = condval)) +
   geom_density() +
-  geom_vline(xintercept = mean(ranef_fitful$condval), col = 'red')
+  geom_vline(xintercept = mean(ranef_fitful$condval),
+             col = 'red')
 ```
+
+# þýðing á condval
 
 # gunnar vill fá eitthvað í líkingu við þetta inn
 #p1 <- lm(correct ~ factor(studentId) + factor(cue), data = cue_nocue)
 
+
+# Bootstrap
+
+## Bootstrap með cue, qName og interaction. 100 ítranir.
+
 ```{r}
-#Texti frá Þórarni
-Anova(fit.ful, type = 3) %>%
-  broom::tidy() %>%
-  write_csv(path = 'data/fit_full_anova.csv')
+# Taflan gefur okkur auc bjartsýni fyrir hverja ítrun þar sem bjartsýnin er mismunurinn á bootstrap gagna #auc og auc fyrir allan gagnaramman. Meðaltal bjartsýnis dálksins gefur okkur hversu mikið við þurfum að #leiðrétta auc gildið sem við fengum frá módelinu.
+boot <- read.csv("drasl_cue_allt.csv")
+```
 
-test <- read_csv('drasl_cue_allt.csv')
 
-test %>%
-  select(1, 2, 3) %>%
-  gather(type, Score) %>%
+Myndræn framsetning bootstrap töflunnar:
+```{r}
+# density = þéttleiki ?
+
+boot %>%
+  dplyr::select(1,2,3) %>%
+  gather(type,
+         Score) %>%
   mutate(type = factor(type, 
-                       levels = c('auc_b', 'auc_afgangs', 'auc_opt'),
-                       labels = c('Bootstrap', 'Full', 'Optimism'))) %>%
+                       levels = c('auc_b',
+                                  'auc_afgangs',
+                                  'auc_opt'),
+                       labels = c('Bootstrap',
+                                  'Afgangs',
+                                  'Bjartsýni'))) %>%
   ggplot(aes(x = Score)) +
   geom_density() +
-  facet_wrap(~type, scales = 'free') -> p1
+  facet_wrap(~type,
+             scales = 'free')  + 
+  labs(x="Gildi", title = "AUC")-> p1
 
-test %>%
-  select(4, 5, 6) %>%
-  gather(type, Score) %>%
+boot %>%
+  dplyr::select(4,5,6) %>%
+  gather(type,
+         Score) %>%
+    mutate(type = factor(type, 
+                       levels = c('brier_afgangs',
+                                  'brier_b',
+                                  'brier_opt'),
+                       labels = c('Bootstrap',
+                                  'Afgangs',
+                                  'Bjartsýni'))) %>%
+  
   ggplot(aes(x = Score)) +
   geom_density() +
-  facet_wrap(~type, scales = 'free') -> p2
-
-ranef(fit.ful) %>%
-  as_tibble() -> ranef_fitful
-ranef_fitful %>%
-  ggplot(aes(x = condval)) +
-  geom_density() +
-  geom_vline(xintercept = mean(ranef_fitful$condval), col = 'red')
+  facet_wrap(~type,
+             scales = 'free') + 
+  labs(x="Gildi", title = "Brier") -> p2
 
 
-library(cowplot)
+plot_grid(p1, p2,
+          align ='v',
+          ncol = 1)
+```
 
-plot_grid(p1, p2, align ='v', ncol = 1,  labels = c('AUC', 'Brier'))
+## Finna leiðrétt auc og brier.
+
+Brier gildi án bootstrap.
+```{r}
+b <- mean((cue_nocue$correct - predict(glmer3,
+                                       type = 'response'))^2)
+bm <- mean(predict(glmer3,
+                   type = 'response'))* (1-mean(predict(glmer3,
+                                                        type = 'response')))
+bs <- 1- b/bm
+bs
+```
+Meðaltal bootstrap bjartsýninnar.
+```{r}
+brier_medal_opt <- mean(boot$brier_opt)
+brier_medal_opt
+```
+Sem gefur leiðrétt brier gildi.
+```{r}
+brier_leidrett <- bs-brier_medal_opt
+brier_leidrett
+```
+AUC gildi líkans.
+```{r}
+auc_likan <- auc(roc(cue_nocue$correct,
+                     predict(glmer3,
+                             type = 'response'),
+                     quiet = T))[[1]] 
+auc_likan
+```
+
+Meðaltal bootstrap bjartsýninnar:
+```{r}
+auc_medal_opt <- mean(boot$auc_opt)
+auc_medal_opt
+```
+
+Leiðrétt AUC er þá:
+```{r}
+auc_leidrett <- auc_likan-auc_medal_opt
+auc_leidrett
+```
+
+ROC mynd fyrir leiðrétt gildi á auc og brier.
+```{r}
+phats <- fitted(glmer3)
+
+pred <- prediction(phats,
+                   cue_nocue$correct)
+
+perf <- performance(pred,
+                    "tpr",
+                    "fpr")
+plot(perf,
+     colorize=T,
+     cex.main=1,
+     main= paste("ROC kúrfa - leiðrétt AUC og brier 
+                 AUC =",
+                 round(auc_leidrett,4),
+                 " Brier =",
+                 round(brier_leidrett,5)),
+     cex.sub=1,)
+abline(a=0, b = 1, col='blue')
+```
+
+Brier gildi sem bendir til þess að líkanið sé mjög viðkvæmt fyrir gögnunum.
+
+# horfur sem loka kafli - umræður
+
+
+```{r}
+fit.lm <- lm(medal ~ cue,
+     data = medal)
+
+var <- summary(fit.lm)$sigma
+
+mean1 <- 7.271317
+mean2 <- 7.744534
+
+f <- abs(mean1-mean2)/sqrt(var)
+f
+
+pwr.t.test(n = NULL , d = f, sig.level = 0.01, power = 0.9, type = c("paired"))
+
+```
+Samkvæmt þessu ef ég skil rétt þá þarf ég 71 spurningu til þess að geta sagt að að cue sé marktækt.
+
+```{r}
+fit <- lm(grade ~ cue + factor(studentId), data=cue_nocue)
+```
+
+```{r}
+Anova(fit) %>%
+  broom::tidy() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover"))
+```
+
+
+```{r}
+ab <- lmer(grade ~ cue + (1|studentId), data=cue_nocue)
+```
+
+```{r}
+summary(ab)
+```
+
+```{r}
+f <- medal %>% 
+        filter(cue==0) %>% 
+        summarise(
+          medal_an = mean(medal)
+        )
+ggplot(data=medal,
+       aes(x=qName,
+           y=medal,
+           color=cue,
+           group=cue)) + 
+  geom_point() +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) + 
+  labs(x="Spurning", y="Meðaleinkunn", color="Cue", title = "Einkunnir á spurningu" ) + 
+    geom_abline(intercept = 7.271317,
+              slope = 0,
+              lty = 1,
+              color="tomato") +
+    geom_abline(intercept = 7.744534,
+              slope = 0,
+              lty = 1,
+              color="turquoise3")
+
 ```
 
