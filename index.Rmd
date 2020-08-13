@@ -27,9 +27,9 @@ Markmið verkefnisins var að greina hvort og hversu mikil áhrif það hefði f
 
 Hafa vísbendingaspurningar marktæk áhrif á frammistöðu nemenda í tutor-web kennslukerfinu.
 
-# Kóði
+## Kóði
 
-Allur kóði sem var smíðaður til að skapa myndir, töflur og likön má finna á [Github](https://github.com/ingunnlilja/myr)
+Allur kóði sem var smíðaður til að skapa myndir, töflur og likön má finna á [Github](https://github.com/ingunnlilja/myrepo)
 
 # Lýsandi tölfræði
 
@@ -79,27 +79,20 @@ Sjáum að umtalsvert meira af án cue svörum er til staðar í gagnasettinu.
 Tölulegar upplýsingar myndar \ref{fig:mynd1} voru settar fram í töflu.
 
 
+
 ```{r tafla1, echo=F, message=FALSE, warning=FALSE}
-cue_nocue$correct <- with(cue_nocue, ifelse(correct==1, "Rétt", "Rangt"))
-Heild <- sum
+fjoldi <- read_csv('tables/fjoldi_cuenocue.csv')
 
-addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild, quiet = TRUE) %>%
-  kable(col.names = c("Án cue",
-                      "Með cue",
-                      "Heild"), 
-        align = c('cccc'), 
-        booktabs = T,
-        'latex',
-        caption = '(\\#tab:strings) Hér má sjá fjölda svara eftir cue og correct',
-        linesep = '',
-        escape = F) %>%
-  kable_styling(full_width = F,
-                latex_options = 'hold_position') 
-
-cue_nocue$correct <- with(cue_nocue, ifelse(correct=="Rétt", 1, 0))
-cue_nocue$correct <- as.integer(cue_nocue$correct)
+fjoldi %>%
+   kable(booktabs = T, 'latex',
+       align = c('cccc'),
+       col.names = c('', 'Nocue', 'Cue', 'Heild'),
+       caption = '(\\#tab:strings) Hér má sjá fjölda svara eftir cue og correct ',
+       linesep = '',
+       escape = F) %>%
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
-
 
 Sjá má að langstærsti flokkurinn er rétt svar án cue með 16399 svör, á móti eru aðeins 1372 röng svör án cue. Einnig er ljóst að cue svör eru umtalsvert færri en án cue svörin. Mögulegt er að ekki sé nægilega mikið af cue svörum til staðar og því var farið í power útreikninga í lok skýrslunnar til þess að kanna hvort og hversu mikið vantar uppá.
 
@@ -119,7 +112,8 @@ hlutfall_heild %>%
        caption = '(\\#tab:strings) Hlutföll á milli svara ',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 Sjáum að um 80% gagnasettsins eru án cue svör.
@@ -133,11 +127,12 @@ hlutfall <- read_csv('tables/hlutfall.csv')
 hlutfall %>%
    kable(booktabs = T, 'latex',
        align = c('ccc'),
-       col.names = c('', 'Án Cue', 'Með cue'),
+       col.names = c('', 'NoCue', 'Cue'),
        caption = '(\\#tab:strings) Hlutföll á milli svara ',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position') 
+ kable_styling(full_width = F, latex_options = 'hold_position')  %>% 
+ row_spec(row = 0, bold = T)
 ```
 
 
@@ -153,12 +148,14 @@ hlutfallaprof %>%
        caption = '(\\#tab:strings) Hlutfallapróf með prop.test',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 
 ```
 
 Tilgátuprófið var „2-sample test for equality of proportions with continuity correction“ með gagntilgátuna „two-sided“. Munurinn er marktækur með p-gildi u.þ.b. 0 og 95% öryggisbil fyrir mismun hlutfallanna frá þremur prósentum uppí fimm prósent.
 Niðurstaðan er vísbending um að mögulega standist það að nemendur sem fá cue spruningu séu líklegri til að svara spurningu rétt.
+
 
 
 ## Meðaleinkunn
@@ -172,17 +169,20 @@ medaleink %>%
   kable(booktabs = T,
         'latex',
        align = c('cc'),
-       col.names = c('cue', 'meðaleinkunn'),
+       col.names = c('Cue', 'Medaleinkunn'),
        caption = '(\\#tab:strings) Meðaleinkunn eftir cue eða ekki cue',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 Meðaleinkunnin er u.þ.b. 0.5 hærri fyrir svör við vísbendinga spurningum en spurningum án þeirra.
 
-Tafla \@ref(fig:tafla3) miðar við fjölda réttra svara deilt með fjölda svara en til þess að geta sett upp kassarit sem sýnir fjórðungamörk fyrir hvorn flokk fyrir sig var ákveðið að flokka niður svörin á hverja spurningu. Nýr gagnarammi var búin til sem innihélt eftirfarandi breytur.
 
+Tafla \@ref(tab:tafla3) miðar við fjölda réttra svara deilt með fjölda svara en til þess að geta sett upp kassarit sem sýnir fjórðungamörk fyrir hvorn flokk fyrir sig var ákveðið að flokka niður svörin á hverja spurningu. Nýr gagnarammi var búin til sem innihélt eftirfarandi breytur.
+
+\newpage
 
   1. QName
   
@@ -218,11 +218,12 @@ ancue %>%
   kable(booktabs = T,
         'latex',
        align = c('cc'),
-       col.names = c('fjórðungamörk','meðaleinkunn'),
+       col.names = c('Fjordungamork','Medaleinkunn'),
        caption = '(\\#tab:strings) Fjórðungamörk meðaleinkunnar fyrir ekki cue',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 
@@ -233,11 +234,12 @@ medcue %>%
   kable(booktabs = T,
         'latex',
        align = c('cc'),
-       col.names = c('fjórðungamörk','meðaleinkunn'),
+       col.names = c('Fjordungamork','Medaleinkunn'),
        caption = '(\\#tab:strings) Fjórðungamörk meðaleinkunnar fyrir ekki cue',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 
@@ -290,11 +292,12 @@ undir <- read_csv("tables/medal_undir.csv")
 undir %>% 
   kable(booktabs = T, 'latex',
        align = c('ccc'),
-       col.names = c('cue', 'fjöldi', 'Meðaleinkunn'),
+       col.names = c('Cue', 'Fjoldi', 'Medaleinkunn'),
        caption = '(\\#tab:str1) Meðaltal nemenda undir grade fimm eftir cue',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+row_spec(row = 0, bold = T)
 ```
 
 
@@ -308,11 +311,13 @@ yfir %>%
   kable(booktabs = T,
         'latex',
        align = c('ccc'),
-       col.names = c('cue', 'fjöldi', 'meðaleinkunn'),
+       col.names = c('Cue', 'Fjoldi', 'Medaleinkunn'),
        caption = '(\\#tab:str2) Meðaltal nemenda yfir grade fimm eftir cue',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F,
+               latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 
@@ -322,7 +327,9 @@ Meðaleinkunn nemenda yfir fimm er mjög há fyrir báða hópa og munar litlu s
 
 # Líkan
 
-Útfrá upplýsingunum í lýsandi tölfræði kaflanum var sett upp slembiþátta tvíkosta aðhvarfsgreiningarlíkan til að greina hvort cue hefði marktæk áhrif eða ekki. Breyturnar sem voru settar inn eru cue, qName og studentId sem slembiþáttur. Auka breyta var sett inn sem víxlhrif á milli cue og qName.\newline Formúla líkansins var eftirfarandi: $$correct = cue + qName + cue*qName + (1 | studentId)$$
+Útfrá upplýsingunum í lýsandi tölfræði kaflanum var sett upp slembiþátta tvíkosta aðhvarfsgreiningarlíkan til að greina hvort cue hefði marktæk áhrif eða ekki. Breyturnar sem voru settar inn eru cue, qName og studentId sem slembiþáttur. Auka breyta var sett inn sem víxlhrif á milli cue og qName.\newline Formúla líkansins var eftirfarandi: 
+
+$$\mbox{correct} =  \mbox{cue} + \mbox{qName} + \mbox{cue} \times \mbox{qName} + \mbox{(1 | studentId)}$$
 
 Niðurstöður líkansins voru settar fram í Anova töflu.
 
@@ -334,11 +341,12 @@ anova_glmer %>%
   kable(booktabs = T,
         'latex',
        #align = c('cccc'),
-       col.names = c('breytur', 'prófstærð', 'frígráður', 'p-gildi'),
+       col.names = c('Breytur', 'Prófstærð', 'Frígráður', 'P-gildi'),
        caption = '(\\#tab:str2) Anova tafla',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(row = 0, bold = T)
 ```
 
 cue er ekki marktækt með p-gildið 0.08 en víxlhrif á milli cue og qName eru marktæk sem og qname. 
@@ -369,7 +377,7 @@ include_graphics('img/ROC.png')
 ```
 AUC gildið er 0.7395 sem er allt í lagi. Líkanið hefur þá rétt fyrir sér í 74% tilvika sem er hátt. 
 
-Inná \ref{fig:mynd7} var einnig sett Brier gildi líkansins sem segir til um hversu vel líkaninu tókst til að spá um raungildi gagnanna. Brier gildi er fullomið ef það er einn og bendir svo til gagnslauss líkans ef það er 0.  
+Inná mynd \ref{fig:mynd7} var einnig sett Brier gildi líkansins sem segir til um hversu vel líkaninu tókst til að spá um raungildi gagnanna. Brier gildi er fullomið ef það er einn og bendir svo til gagnslauss líkans ef það er 0.  
 Brier gildið 0.13 er mjög slappt miðað við þetta.
 
 \newpage
@@ -410,7 +418,7 @@ AUC gildið er ennþá ásættanlega hátt en brier gildið er mjög lágt. Bend
 # Power útreikningar
 
 Fyrir power útreikninga þurfti að nota grade breytuna frekar en correct til þess að hafa samfellda breytu. 
-Sett var upp slembiþáttalíkan með cue og studentID sem slembiþætti: $grade = cue + (1 | studentId)$ 
+Sett var upp slembiþáttalíkan með cue og studentID sem slembiþætti: $$\mbox{grade} = \mbox{cue} + \mbox{(1 | studentId)}$$
 
 Markmiðið var að finna úrtaksstærð svara sem gefði power uppá 0.8 sem merkir að við getum hafnað núlltilgátunni að cue hafi ekki áhrif í 80% tilvika.
 Notuð var hermun til þess að síendurtekið skapa handahófskennd gögn byggð á líkaninu. Greina svo hvert gagnasett og taka hlutfallið á milli niðurstaðanna sem eru marktækar og ekki. Hlutfallið er þá powerið fyrir líkanið. 
@@ -454,11 +462,13 @@ power %>%
   kable(booktabs = T,
         'latex',
        align = c('ccc'),
-       col.names = c('n','p', 'power'),
+       col.names = c('Urtaksstaerd','Hlutfall cue', 'Power'),
        caption = '(\\#tab:strings) Pör af úrtaksstærð n og tíðni cue p sem gefa power um 0.8',
        linesep = '',
        escape = F) %>%
- kable_styling(full_width = F, latex_options = 'hold_position')
+ kable_styling(full_width = F, latex_options = 'hold_position') %>% 
+  row_spec(0, bold = T)
+  #column_spec(1, bold = T, border_right = T)
 ```
 
 Því hærri tíðni cue sem spurningarnar eru látnar hafa því færri svör þarf til að hafa power um 0.8 Miðað við 20% svara sem cue dugar að hafa 2500 svör.

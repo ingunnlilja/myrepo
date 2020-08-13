@@ -4,7 +4,6 @@ author: "Ingunn Lilja Bergsdóttir"
 date: "7/27/2020"
 output: 
         html_document: default
-        pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE}
 library(dbplyr)
 library(dplyr)
+library(huxtable)
 library(tinytex)
 library(RMySQL)
 library(tidyr)
@@ -90,10 +90,19 @@ Tíðnitafla
 
 ```{r}
 # Komið inn
+# Þetta virkaði ekki og var gert bein inní skjalið
 cue_nocue$correct <- with(cue_nocue, ifelse(correct==1, "Rétt", "Rangt"))
 Heild <- sum
-addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild) %>% as.data.frame() -> t1
- 
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild) %>% as.data.frame() %>% filter(cue==0) %>% dplyr::select(Freq) -> an_cue
+
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild) %>% as.data.frame() %>% filter(cue==1) %>% dplyr::select(Freq) -> med_cue
+
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild) %>% as.data.frame() %>% filter(cue=='Heild') %>% dplyr::select(Freq) -> heild_cue
+
+a <- c('Rangt', 'Rétt', 'Heild')
+cbind.data.frame(a, an_cue, med_cue, heild_cue) -> t1
+
+
 
 write_csv(x = t1, path = 'tables/fjoldi_cuenocue.csv')
 
@@ -101,13 +110,37 @@ cue_nocue$correct <- with(cue_nocue, ifelse(correct=="Rétt", 1, 0))
 cue_nocue$correct <- as.integer(cue_nocue$correct)
 ```
 
+
+```{r}
+cue_nocue$correct <- with(cue_nocue, ifelse(correct==1, "Rétt", "Rangt"))
+Heild <- sum
+
+addmargins(table(correct=cue_nocue$correct, cue=cue_nocue$cue), FUN = Heild, quiet = TRUE) %>%
+  kable(col.names = c("Án cue",
+                      "Með cue",
+                      "Heild"), 
+        align = c('cccc'), 
+        booktabs = T,
+        'latex',
+        caption = '(\\#tab:strings) Hér má sjá fjölda svara eftir cue og correct',
+        linesep = '',
+        escape = F) 
+
+cue_nocue$correct <- with(cue_nocue, ifelse(correct=="Rétt", 1, 0))
+cue_nocue$correct <- as.integer(cue_nocue$correct)
+```
+
+
+
 Tafla sem sýnir meðaleinkunn fyrir hvorn flokk þar sem einkunnin byggir á fjölda réttra svara deilt með fjölda svara.
 
 ```{r}
 # Komið inn
 cue_nocue %>%
   group_by(cue) %>%
-    summarise(Medal_einkunn=mean(correct, na.rm = T)*10) -> t2
+    summarise(Meðaleinkunn=mean(correct, na.rm = T)*10) -> t2
+
+
 
 write_csv(x = t2, path = 'tables/medaleink_cuenocue.csv')
 ```
@@ -226,13 +259,13 @@ medal_undir$cue <-
   ggplot(data=medal_undir,
          aes(x=cue,
              y=medal,
-             color=cue)) +
+             color=cue), show.legend = F) +
   geom_boxplot(outlier.colour = "blue",
-               outlier.shape = 1) +
+               outlier.shape = 1, show.legend = F) +
   xlab("cue") +
   ylab("Einkunn") +
-  ggtitle("Einkunn með/án vísbendinga nemendur undir 5") -> p5
-  #theme(legend.position = "bottom") -> p5
+  ggtitle("Einkunn með/án vísbendinga nemendur undir 5") +
+  theme(legend.position = 'none') -> p5
 ggsave(filename = 'img/boxp_medal_undir.png', plot = p5, width = 6, height = 6, dpi = 320)
 ```
 
@@ -300,7 +333,10 @@ cue_yfir_fimm %>%
   group_by(cue) %>%
      summarise(fjoldi=length(cue), medaleinkunn=mean(correct, na.rm = T)*10) -> m_y
 
+m_y <- as.tibble(m_y)
+
 write_csv(x = m_y, path = 'tables/medal_yfir.csv')
+m_y
 ```
 
 ```{r}
@@ -396,7 +432,7 @@ prop.test(table(cue_nocue$correct,
                 cue_nocue$cue), 2) %>%
   broom::tidy() -> hlutfallaprof
 hlutfallaprof <- hlutfallaprof %>% dplyr::select(-(method),-(alternative))
-names(hlutfallaprof) <- c("mat1", "mat2", "prófstærð", "p-gildi", "frígráða", "neðra mark öryggisb.", "efra mark öryggisb.")
+names(hlutfallaprof) <- c("Mat1", "Mat2", "Prófstærð", "P-gildi", "Frígráða", "Neðra mark öryggisb.", "Efra mark öryggisb.")
 write_csv(x=hlutfallaprof, path = "tables/hlutfallaprof.csv")
 ```
 
@@ -425,6 +461,8 @@ Anova tafla.
 Anova(glmer3,
       type = "III") %>%
   broom::tidy() -> anova
+
+str(anova)
 
 write_csv(x = anova, path = 'tables/anova')
 ```
@@ -638,12 +676,7 @@ ggplot(data=medal,
                outlier.shape = 1) +
   xlab("cue") +
   ylab("Einkunn") +
-  ggtitle("Einkunn með/án vísbendinga") +
-  geom_point(data=f,
-             aes(x=cue,
-                 y=medal),
-             col="red",
-             size=2) -> p4
+  ggtitle("Einkunn með/án vísbendinga")  -> p4
 ggsave(filename = 'img/boxp_cuenocue.png', plot = p4, width = 6, height = 5, dpi = 320)
 ```
 
